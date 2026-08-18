@@ -11,15 +11,15 @@ import { fortiEditTool } from './ui/forti-edit';
 import { referenceTool } from './ui/reference';
 
 // Nav order: home, then the generators in the order you would reach for
-// them, then the editor, then the lookup tab.
+// them, then the editor, then the lookup tab, with templates last.
 const tools: Tool[] = [
   homeTool,
-  quickstartTool,
   objectHelperTool,
   webfilterTool,
   webfilterContentTool,
   fortiEditTool,
   referenceTool,
+  quickstartTool,
 ];
 
 const app = document.getElementById('app')!;
@@ -43,8 +43,9 @@ footer.innerHTML =
 
 app.append(header, main, footer);
 
-// A hairline after these tabs splits the bar into: home | build | work with.
-const NAV_BREAKS = new Set(['home', 'content-filter']);
+// A hairline after these tabs splits the bar into:
+// home | build | work with | templates.
+const NAV_BREAKS = new Set(['home', 'content-filter', 'reference']);
 
 const links = new Map<string, HTMLAnchorElement>();
 for (const tool of tools) {
