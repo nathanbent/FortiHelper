@@ -1,0 +1,48 @@
+config firewall policy
+    edit 1
+        set name "Allow-Out"
+        set uuid 2f6b8c1a-0000-51e9-adf1-77660e2ea746
+        set srcintf "x1" "dmz" "x2"
+        set dstintf "wan1"
+        set srcaddr "all"
+        set dstaddr "srv-web" "srv-db-very-long-object-name-that-got-wrapped" "srv-extra"
+        set service "HTTP" "HTTPS"
+        set action accept
+        set schedule "always"
+        set nat enable
+    next
+    edit 2
+        set name "Deny Guests"
+        set srcintf "any"
+        set dstintf "wan1"
+        set srcaddr "Guest Network"
+        set dstaddr "all"
+        set schedule "always"
+        set action deny
+    next
+    edit 30
+        set name "Branch VPN"
+        set srcintf "x1" "x2"
+        set dstintf "x1" "wan2"
+        set srcaddr "branch-net"
+        set dstaddr "hq-net"
+        set action accept
+        set schedule "always"
+        unset status
+        config replacemsg-override-group
+            edit "custom-msgs"
+                set group-type utm
+            next
+        end
+        set comments "policy with a nested block"
+    next
+    edit 41
+        set name "No-NAT out"
+        set srcintf "dmz"
+        set dstintf "wan1"
+        set srcaddr "dmz-hosts"
+        set dstaddr "all"
+        set action accept
+        set schedule "always"
+    next
+end

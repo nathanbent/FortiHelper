@@ -1,0 +1,9 @@
+config firewall policy
+    edit 1
+        set srcintf "x1" "dmz" "x2"
+    next
+    edit 30
+        set srcintf "x1" "x2"
+        set dstintf "x1" "wan2" "x2"
+    next
+end

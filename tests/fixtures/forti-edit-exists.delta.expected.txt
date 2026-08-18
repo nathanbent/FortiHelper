@@ -1,0 +1,5 @@
+config firewall policy
+    edit 1
+        set srcintf "x1" "dmz" "wan-backup"
+    next
+end

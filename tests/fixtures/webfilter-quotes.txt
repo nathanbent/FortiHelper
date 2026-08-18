@@ -1,0 +1,10 @@
+"double.example.com"
+'single.example.com'
+"  padded.example.com  "
+"mismatched.example.com'
+'other-mismatch.example.com"
+inner"quote.example.com
+"
+""
+"UPPER.Quoted.Example"
+"upper.quoted.example"

@@ -1,0 +1,5 @@
+config firewall policy
+    edit 2
+        set service "DNS" "HTTP"
+    next
+end

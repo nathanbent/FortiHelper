@@ -1,0 +1,8 @@
+Web Server
+example.com
+
+"DNS Quoted Name"
+1.1.1.1
+Range Object
+10.0.0.1-10.0.0.5
+Orphan Line

@@ -1,0 +1,23 @@
+config firewall address
+edit "Prefix-multi.example.com-1_1_1_1"
+set subnet 1.1.1.1 255.255.255.255
+set comment "Resolved from multi.example.com | ip=1.1.1.1 | resolved_at=2026-01-02 03:04:05Z"
+next
+
+edit "Prefix-multi.example.com-2_2_2_2"
+set subnet 2.2.2.2 255.255.255.255
+set comment "Resolved from multi.example.com | ip=2.2.2.2 | resolved_at=2026-01-02 03:04:05Z"
+next
+
+end
+
+config firewall addrgrp
+edit "Prefix-multi.example.com-Group"
+set member "Prefix-multi.example.com-1_1_1_1" "Prefix-multi.example.com-2_2_2_2"
+next
+
+edit "Prefix-Generated Objects"
+set member "Prefix-multi.example.com-1_1_1_1" "Prefix-multi.example.com-2_2_2_2"
+next
+
+end

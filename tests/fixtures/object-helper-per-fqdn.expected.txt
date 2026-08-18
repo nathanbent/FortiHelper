@@ -1,0 +1,53 @@
+config firewall address
+edit "Prefix-example.com"
+set type fqdn
+set fqdn "example.com"
+next
+
+edit "Prefix-www.example.net"
+set type fqdn
+set fqdn "www.example.net"
+next
+
+edit "Prefix-10.0.0.0/24"
+set subnet 10.0.0.0 255.255.255.0
+next
+
+edit "Prefix-172.16.5.5"
+set subnet 172.16.5.5 255.255.255.255
+next
+
+edit "Prefix-10.1.1.1-10.1.1.9"
+set type iprange
+set start-ip 10.1.1.1
+set end-ip 10.1.1.9
+next
+
+end
+
+config firewall addrgrp
+edit "Prefix-example.com-Group"
+set member "Prefix-example.com"
+next
+
+edit "Prefix-www.example.net-Group"
+set member "Prefix-www.example.net"
+next
+
+edit "Prefix-10.0.0.0/24-Group"
+set member "Prefix-10.0.0.0/24"
+next
+
+edit "Prefix-172.16.5.5-Group"
+set member "Prefix-172.16.5.5"
+next
+
+edit "Prefix-10.1.1.1-10.1.1.9-Group"
+set member "Prefix-10.1.1.1-10.1.1.9"
+next
+
+edit "Prefix-Generated Objects"
+set member "Prefix-example.com" "Prefix-www.example.net" "Prefix-10.0.0.0/24" "Prefix-172.16.5.5" "Prefix-10.1.1.1-10.1.1.9"
+next
+
+end

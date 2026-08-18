@@ -1,0 +1,21 @@
+config firewall address
+edit "Prefix-Web"
+set type fqdn
+set fqdn "example.com"
+set comment "Main site"
+next
+
+edit "Prefix-DB"
+set type fqdn
+set fqdn "db.example.com"
+set comment "Database 'primary'"
+next
+
+end
+
+config firewall addrgrp
+edit "Prefix-Generated Objects"
+set member "Prefix-Web" "Prefix-DB"
+next
+
+end

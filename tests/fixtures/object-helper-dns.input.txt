@@ -1,0 +1,5 @@
+example.com
+fail.example.com
+empty.example.com
+*.wild.example.com
+10.9.9.9

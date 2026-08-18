@@ -1,0 +1,16 @@
+# Blocklist for the branch office
+example.com
+badsite.example
+
+"quoted.example.org"
+'single.example.net'
+Sub.Example.COM
+sub.example.com
+SUB.EXAMPLE.COM
+example.com
+
+# trailing junk below
+not a domain at all
+http://looks-like-a-url.example/path
+*.wildcard.example
+   spaced.example.io   

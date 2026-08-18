@@ -1,0 +1,43 @@
+config firewall address
+edit "Prefix-example.com"
+set type fqdn
+set fqdn "example.com"
+next
+
+edit "Prefix-example.com-IP-1"
+set subnet 93.184.216.34 255.255.255.255
+set comment "Resolved from example.com | ip=93.184.216.34 | resolved_at=2026-01-02 03:04:05Z"
+next
+
+edit "Prefix-example.com-IP-2"
+set subnet 93.184.216.35 255.255.255.255
+set comment "Resolved from example.com | ip=93.184.216.35 | resolved_at=2026-01-02 03:04:05Z"
+next
+
+edit "Prefix-fail.example.com"
+set type fqdn
+set fqdn "fail.example.com"
+next
+
+edit "Prefix-empty.example.com"
+set type fqdn
+set fqdn "empty.example.com"
+next
+
+edit "Prefix-*.wild.example.com"
+set type fqdn
+set fqdn "*.wild.example.com"
+next
+
+edit "Prefix-10.9.9.9"
+set subnet 10.9.9.9 255.255.255.255
+next
+
+end
+
+config firewall addrgrp
+edit "Prefix-Generated Objects"
+set member "Prefix-example.com" "Prefix-example.com-IP-1" "Prefix-example.com-IP-2" "Prefix-fail.example.com" "Prefix-empty.example.com" "Prefix-*.wild.example.com" "Prefix-10.9.9.9"
+next
+
+end

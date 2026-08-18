@@ -1,0 +1,27 @@
+edit "*.wildcard.example"
+set status enable
+next
+edit "badsite.example"
+set status enable
+next
+edit "example.com"
+set status enable
+next
+edit "http://looks-like-a-url.example/path"
+set status enable
+next
+edit "not a domain at all"
+set status enable
+next
+edit "quoted.example.org"
+set status enable
+next
+edit "single.example.net"
+set status enable
+next
+edit "spaced.example.io"
+set status enable
+next
+edit "Sub.Example.COM"
+set status enable
+next

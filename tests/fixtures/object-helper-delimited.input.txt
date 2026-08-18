@@ -1,0 +1,5 @@
+web:example.com
+"dns":1.1.1.1
+noseparator-line.example.com
+range:10.0.0.1-9
+cidr:192.168.0.0/24

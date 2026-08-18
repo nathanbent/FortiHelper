@@ -1,0 +1,9 @@
+example.com
+Primary web "server"
+10.1.2.3
+Direct host comment
+10.4.0.0/16
+Subnet comment
+10.0.0.1-10.0.0.9
+Range comment
+orphan.example.com

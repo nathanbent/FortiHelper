@@ -1,0 +1,13 @@
+node_modules/
+dist/
+*.local
+__pycache__/
+*.pyc
+screenshot-*.png
+
+# Private quickstart templates — never committed (see README: Public and private builds)
+content/quickstart/private/
+
+# Site-specific terms for check-secrets — never committed, since a
+# denylist of secrets publishes the strings it exists to protect
+.secrets-denylist

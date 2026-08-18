@@ -1,0 +1,18 @@
+edit "Apple.example"
+set status enable
+next
+edit "APPLE.example"
+set status enable
+next
+edit "apple.EXAMPLE"
+set status enable
+next
+edit "banana.example"
+set status enable
+next
+edit "mango.example"
+set status enable
+next
+edit "zebra.example"
+set status enable
+next

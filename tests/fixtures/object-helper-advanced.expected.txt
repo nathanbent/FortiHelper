@@ -1,0 +1,61 @@
+config firewall address
+edit "Prefix-example.com"
+set type fqdn
+set fqdn "example.com"
+set fabric-object enable
+set passive-fqdn-learning enable
+set cache-ttl 600
+next
+
+edit "Prefix-10.0.0.0_24"
+set subnet 10.0.0.0 255.255.255.0
+set fabric-object enable
+next
+
+edit "Prefix-172.16.0.1-172.16.0.9"
+set type iprange
+set start-ip 172.16.0.1
+set end-ip 172.16.0.9
+set fabric-object enable
+next
+
+end
+
+config firewall addrgrp
+edit "Prefix-example.com-Grp"
+set type folder
+set category default
+set comment "Generated at 2026-01-02 03:04:05Z"
+set color 7
+set fabric-object enable
+set member "Prefix-example.com"
+next
+
+edit "Prefix-10.0.0.0_24-Grp"
+set type folder
+set category default
+set comment "Generated at 2026-01-02 03:04:05Z"
+set color 7
+set fabric-object enable
+set member "Prefix-10.0.0.0_24"
+next
+
+edit "Prefix-172.16.0.1-172.16.0.9-Grp"
+set type folder
+set category default
+set comment "Generated at 2026-01-02 03:04:05Z"
+set color 7
+set fabric-object enable
+set member "Prefix-172.16.0.1-172.16.0.9"
+next
+
+edit "Prefix-Generated Objects"
+set type folder
+set category default
+set comment "Generated at 2026-01-02 03:04:05Z"
+set color 7
+set fabric-object enable
+set member "Prefix-example.com" "Prefix-10.0.0.0_24" "Prefix-172.16.0.1-172.16.0.9"
+next
+
+end

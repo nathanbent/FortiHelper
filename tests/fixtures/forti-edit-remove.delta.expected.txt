@@ -1,0 +1,8 @@
+config firewall policy
+    edit 1
+        set srcintf "x1"
+    next
+    edit 41
+        set srcintf
+    next
+end

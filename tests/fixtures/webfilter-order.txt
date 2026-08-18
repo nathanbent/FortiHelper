@@ -1,0 +1,6 @@
+zebra.example
+Apple.example
+mango.example
+APPLE.example
+banana.example
+apple.EXAMPLE

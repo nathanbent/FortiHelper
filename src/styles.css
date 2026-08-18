@@ -1,0 +1,693 @@
+/*
+ * Theming. The light palette is the base; the dark overrides are declared
+ * twice, once for the system preference (unless the user has forced light)
+ * and once for an explicit dark choice, so the header control wins in both
+ * directions. `data-theme` is set on <html> by the theme control, and by an
+ * inline script in index.html so the first paint is already correct.
+ */
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --text: #1a2233;
+  --muted: #5b6678;
+  --border: #d8dde6;
+  --accent: #c8102e; /* Forti red */
+  --accent-text: #ffffff;
+  --output-bg: #0f172a;
+  --output-text: #d7e2f0;
+  --warn-bg: #fff7e6;
+  --warn-border: #e6c37a;
+  --warn-text: #7a5b1a;
+  --ok: #1a7f4b;
+  color-scheme: light;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #10141c;
+    --panel: #1a2130;
+    --text: #e4e9f2;
+    --muted: #93a0b4;
+    --border: #2c3548;
+    --accent: #e4374f;
+    --output-bg: #0b0f17;
+    --output-text: #cfdaea;
+    --warn-bg: #2e2712;
+    --warn-border: #6b5a24;
+    --warn-text: #e2c977;
+    --ok: #4ade80;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #10141c;
+  --panel: #1a2130;
+  --text: #e4e9f2;
+  --muted: #93a0b4;
+  --border: #2c3548;
+  --accent: #e4374f;
+  --output-bg: #0b0f17;
+  --output-text: #cfdaea;
+  --warn-bg: #2e2712;
+  --warn-border: #6b5a24;
+  --warn-text: #e2c977;
+  --ok: #4ade80;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+/* Field rows use display:flex, which would otherwise beat the attribute. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.shell-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.shell-header h1 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.shell-header h1 .beta {
+  font-size: 0.7rem;
+  color: var(--accent);
+  vertical-align: super;
+  margin-left: 0.15rem;
+}
+
+.shell-nav {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.theme-picker {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.theme-picker select {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.shell-nav a {
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.shell-nav a:hover { color: var(--text); background: var(--bg); }
+
+.shell-nav a.active {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+.tool-main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.tool-desc {
+  color: var(--muted);
+  margin: 0.25rem 0 1rem;
+  font-size: 0.95rem;
+}
+
+.tool-layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.2fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .tool-layout { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.panel h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.panel + .panel { margin-top: 1.25rem; }
+
+textarea.tool-input {
+  width: 100%;
+  min-height: 220px;
+  font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem;
+  resize: vertical;
+}
+
+textarea.tool-input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.7rem;
+}
+
+.field-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.field-row .field { flex: 1; min-width: 140px; }
+
+.field label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.field input[type='text'],
+.field input[type='number'],
+.field select {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.9rem;
+  /* Let a long hint wrap to its own line instead of squeezing the label. */
+  flex-wrap: wrap;
+  cursor: pointer;
+}
+
+.check input { accent-color: var(--accent); flex-shrink: 0; }
+
+.check .hint { color: var(--muted); font-size: 0.8rem; }
+
+.field > .hint { color: var(--muted); font-size: 0.8rem; }
+
+.check-group {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem 0.1rem;
+}
+
+.check-group .check { margin-bottom: 0.35rem; }
+
+details.adv {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+}
+
+details.adv summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.btn:hover { border-color: var(--muted); }
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.btn.primary:disabled { opacity: 0.6; cursor: default; }
+
+.btn-row {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0.6rem 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+pre.output {
+  background: var(--output-bg);
+  color: var(--output-text);
+  border-radius: 8px;
+  padding: 0.85rem;
+  font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  overflow: auto;
+  max-height: 560px;
+  min-height: 120px;
+  white-space: pre;
+  margin: 0;
+}
+
+.output-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: 0.85rem;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  border-color: var(--border);
+}
+
+.stats {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.warnings {
+  margin-top: 0.6rem;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.warnings ul { margin: 0.25rem 0 0; padding-left: 1.2rem; }
+
+.copied { color: var(--ok); font-size: 0.85rem; }
+
+.shell-footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 1.5rem 0 2rem;
+}
+
+.shell-footer a { color: var(--muted); }
+
+/* --- Color swatch (Object Helper color picker) --- */
+.swatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  vertical-align: -0.1rem;
+  margin-right: 0.4rem;
+}
+
+.swatch-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* --- Reference tab --- */
+.ref-search {
+  width: 100%;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.ref-filters { margin-bottom: 1.25rem; }
+
+.ref-filters .field-row { margin-bottom: 0.5rem; }
+
+.ref-filters .field { margin-bottom: 0; }
+
+.ref-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border);
+  margin-top: 0.75rem;
+  padding-top: 0.6rem;
+}
+
+.ref-summary { color: var(--muted); font-size: 0.85rem; }
+
+.ref-summary-row .btn { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+/* --- collapsible section --- */
+.ref-section { padding: 0; }
+
+.ref-section + .ref-section { margin-top: 0.6rem; }
+
+.ref-summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 10px;
+}
+
+.ref-summary-head::-webkit-details-marker { display: none; }
+
+.ref-summary-head:hover { background: var(--bg); }
+
+.ref-section[open] .ref-summary-head {
+  border-bottom: 1px solid var(--border);
+  border-radius: 10px 10px 0 0;
+}
+
+.ref-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* The marker rotates in place, so the row height never shifts on open. */
+.ref-title { font-weight: 600; font-size: 0.98rem; }
+
+.ref-title::before {
+  content: '\25b8';
+  display: inline-block;
+  color: var(--muted);
+  margin-right: 0.5rem;
+  transition: transform 0.12s ease;
+}
+
+.ref-section[open] .ref-title::before { transform: rotate(90deg); }
+
+.ref-tag {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ref-summary-head .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; flex-shrink: 0; }
+
+.ref-body { padding: 0.75rem 1rem 1rem; }
+
+.ref-note {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}
+
+.ref-snippet {
+  border-top: 1px solid var(--border);
+  padding-top: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.ref-snippet:first-of-type { border-top: none; padding-top: 0; }
+
+.ref-snippet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.3rem;
+}
+
+.ref-snippet .desc { display: block; color: var(--muted); font-size: 0.85rem; }
+
+/* Reference snippets are short and meant to be read, so let them show in
+   full rather than scrolling inside the card — the page scrolls instead. */
+.ref-snippet pre.output { margin-top: 0.5rem; max-height: none; }
+
+.ref-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.ref-entry:last-child { border-bottom: none; }
+
+.ref-entry code {
+  font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  background: var(--bg);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  word-break: break-all;
+}
+
+.ref-entry .desc {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.ref-entry .btn { padding: 0.15rem 0.5rem; font-size: 0.8rem; flex-shrink: 0; }
+
+/* --- Forti Edit rule builder --- */
+.rule-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7rem;
+  margin-bottom: 0.7rem;
+  background: var(--bg);
+}
+
+.rule-card h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rule-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.rule-row input,
+.rule-row select {
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.rule-row input { flex: 1; min-width: 90px; }
+
+.rule-row .btn { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
+
+.match-list {
+  font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.7rem;
+  max-height: 180px;
+  overflow: auto;
+  margin: 0.5rem 0;
+}
+
+/* --- Quickstart template form --- */
+.quickstart-title {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.quickstart-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0 1rem;
+  margin-top: 0.5rem;
+}
+
+.quickstart-fields .field { margin-bottom: 0.6rem; }
+
+.quickstart .adv textarea.tool-input { min-height: 140px; margin-bottom: 0.5rem; }
+
+/* --- Templates index --- */
+.tpl-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.75rem;
+}
+
+.tpl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  text-decoration: none;
+  color: var(--text);
+}
+
+.tpl-card:hover { border-color: var(--accent); }
+
+.tpl-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.tpl-card-title { font-weight: 600; font-size: 0.95rem; }
+
+.tpl-badge {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-text);
+  background: var(--accent);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  flex-shrink: 0;
+}
+
+.tpl-card-desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.tpl-card-meta { color: var(--muted); font-size: 0.78rem; }
+
+.tpl-footnote { margin-top: 1rem; }
+
+.tpl-footnote code {
+  font-family: ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  background: var(--bg);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+.nav-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 0.25rem 0.4rem;
+  background: var(--border);
+}
+
+/* --- Home launcher --- */
+.home-group { margin-bottom: 1.5rem; }
+
+.home-group-title {
+  margin: 0 0 0.2rem;
+  font-size: 1rem;
+}
+
+.home-group .ref-note { margin-bottom: 0.6rem; }
+
+.home-group .tpl-card { background: var(--panel); }
+
+/* --- Reference selection tray --- */
+.ref-tray {
+  position: sticky;
+  bottom: 0.75rem;
+  margin-top: 1rem;
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.6rem 0.8rem;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+}
+
+.ref-tray-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ref-tray-count {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-right: auto;
+}
+
+.ref-tray-list {
+  margin-bottom: 0.6rem;
+  max-height: 240px;
+  min-height: 0;
+}
+
+.ref-add {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+  min-width: 2rem;
+  justify-content: center;
+}

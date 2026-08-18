@@ -1,0 +1,8 @@
+Web
+example.com
+Main site
+DB
+db.example.com
+Database "primary"
+Extra
+line

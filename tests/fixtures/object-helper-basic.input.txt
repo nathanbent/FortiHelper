@@ -1,0 +1,21 @@
+# plain mode sample
+example.com          # trailing comment
+www.example.org
+*.cdn.example.net
+example.com          ; duplicate fqdn
+10.0.0.5
+10.0.0.5             # duplicate direct IP
+192.168.1.7/24
+10.20.0.0/16
+10.9.8.7/32
+10.30.0.0/255.255.255.0
+172.16.0.10-172.16.0.20
+172.16.0.30-40
+172.16.0.50-172.16.0.45
+https://example.org/path
+bad_label.example.com
+-leading.example.com
+trailing-.example.com
+singlelabel
+10.0.0.999
+a-very-long-fqdn-label-used-to-exceed-the-fortigate-name-limit.some-quite-long-subdomain.example.com

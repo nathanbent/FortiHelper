@@ -1,0 +1,8 @@
+config firewall policy
+    edit 30
+        set nat "disable"
+    next
+    edit 41
+        set nat "disable"
+    next
+end

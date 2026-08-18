@@ -1,0 +1,13 @@
+config firewall address
+edit "Prefix-10.0.0.0/24"
+set subnet 10.0.0.0 255.255.255.0
+next
+
+end
+
+config firewall addrgrp
+edit "Prefix-Generated Objects"
+set member "Prefix-10.0.0.0/24"
+next
+
+end

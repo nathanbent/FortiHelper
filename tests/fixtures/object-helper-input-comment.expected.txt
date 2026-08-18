@@ -1,0 +1,32 @@
+config firewall address
+edit "Prefix-example.com"
+set type fqdn
+set fqdn "example.com"
+set comment "Primary web 'server'"
+next
+
+edit "Prefix-10.1.2.3"
+set subnet 10.1.2.3 255.255.255.255
+set comment "Direct host comment"
+next
+
+edit "Prefix-10.4.0.0/16"
+set subnet 10.4.0.0 255.255.0.0
+set comment "Subnet comment"
+next
+
+edit "Prefix-10.0.0.1-10.0.0.9"
+set type iprange
+set start-ip 10.0.0.1
+set end-ip 10.0.0.9
+set comment "Range comment"
+next
+
+end
+
+config firewall addrgrp
+edit "Prefix-Generated Objects"
+set member "Prefix-example.com" "Prefix-10.1.2.3" "Prefix-10.4.0.0/16" "Prefix-10.0.0.1-10.0.0.9"
+next
+
+end

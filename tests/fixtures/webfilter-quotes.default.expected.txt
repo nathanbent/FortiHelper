@@ -1,0 +1,24 @@
+edit ""
+set status enable
+next
+edit "\"mismatched.example.com'"
+set status enable
+next
+edit "'other-mismatch.example.com\""
+set status enable
+next
+edit "double.example.com"
+set status enable
+next
+edit "inner\"quote.example.com"
+set status enable
+next
+edit "padded.example.com"
+set status enable
+next
+edit "single.example.com"
+set status enable
+next
+edit "UPPER.Quoted.Example"
+set status enable
+next

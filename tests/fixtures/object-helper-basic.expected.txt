@@ -1,0 +1,71 @@
+config firewall address
+edit "Prefix-example.com"
+set type fqdn
+set fqdn "example.com"
+next
+
+edit "Prefix-www.example.org"
+set type fqdn
+set fqdn "www.example.org"
+next
+
+edit "Prefix-*.cdn.example.net"
+set type fqdn
+set fqdn "*.cdn.example.net"
+next
+
+edit "Prefix-10.0.0.5"
+set subnet 10.0.0.5 255.255.255.255
+next
+
+edit "Prefix-192.168.1.0/24"
+set subnet 192.168.1.0 255.255.255.0
+next
+
+edit "Prefix-10.20.0.0/16"
+set subnet 10.20.0.0 255.255.0.0
+next
+
+edit "Prefix-10.9.8.7"
+set subnet 10.9.8.7 255.255.255.255
+next
+
+edit "Prefix-10.30.0.0/24"
+set subnet 10.30.0.0 255.255.255.0
+next
+
+edit "Prefix-172.16.0.10-172.16.0.20"
+set type iprange
+set start-ip 172.16.0.10
+set end-ip 172.16.0.20
+next
+
+edit "Prefix-172.16.0.30-172.16.0.40"
+set type iprange
+set start-ip 172.16.0.30
+set end-ip 172.16.0.40
+next
+
+edit "Prefix-172.16.0.50-172.16.0.45"
+set type fqdn
+set fqdn "172.16.0.50-172.16.0.45"
+next
+
+edit "Prefix-10.0.0.999"
+set type fqdn
+set fqdn "10.0.0.999"
+next
+
+edit "Prefix-a-very-long-fqdn-label-used-to-exceed-the-fortigate-name-limit.some-quite-long-subdomain.example.com"
+set type fqdn
+set fqdn "a-very-long-fqdn-label-used-to-exceed-the-fortigate-name-limit.some-quite-long-subdomain.example.com"
+next
+
+end
+
+config firewall addrgrp
+edit "Prefix-Generated Objects"
+set member "Prefix-example.com" "Prefix-www.example.org" "Prefix-*.cdn.example.net" "Prefix-10.0.0.5" "Prefix-192.168.1.0/24" "Prefix-10.20.0.0/16" "Prefix-10.9.8.7" "Prefix-10.30.0.0/24" "Prefix-172.16.0.10-172.16.0.20" "Prefix-172.16.0.30-172.16.0.40" "Prefix-172.16.0.50-172.16.0.45" "Prefix-10.0.0.999" "Prefix-a-very-long-fqdn-label-used-to-exceed-the-fortigate-name-limit.some-quite-long-subdomain.example.com"
+next
+
+end

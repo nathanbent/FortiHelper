@@ -1,0 +1,32 @@
+edit ""
+set status enable
+set action exempt
+next
+edit "\"mismatched.example.com'"
+set status enable
+set action exempt
+next
+edit "'other-mismatch.example.com\""
+set status enable
+set action exempt
+next
+edit "double.example.com"
+set status enable
+set action exempt
+next
+edit "inner\"quote.example.com"
+set status enable
+set action exempt
+next
+edit "padded.example.com"
+set status enable
+set action exempt
+next
+edit "single.example.com"
+set status enable
+set action exempt
+next
+edit "UPPER.Quoted.Example"
+set status enable
+set action exempt
+next

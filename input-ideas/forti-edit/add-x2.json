@@ -1,0 +1,7 @@
+{
+  "section": "firewall policy",
+  "rules": [
+    { "where": [["srcintf", "contains", "x1"]], "append": [["srcintf", "x2"]] },
+    { "where": [["dstintf", "contains", "x1"]], "append": [["dstintf", "x2"]] }
+  ]
+}

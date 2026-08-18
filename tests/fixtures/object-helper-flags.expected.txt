@@ -1,0 +1,24 @@
+config firewall address
+edit "ACME_mixed.example.com"
+set type fqdn
+set fqdn "mixed.example.com"
+set associated-interface "wan1"
+set color 5
+set allow-routing enable
+next
+
+edit "ACME_10.10.10.0/24"
+set subnet 10.10.10.0 255.255.255.0
+set associated-interface "wan1"
+set color 5
+set allow-routing enable
+next
+
+end
+
+config firewall addrgrp
+edit "ACME_Generated Objects"
+set member "ACME_mixed.example.com" "ACME_10.10.10.0/24"
+next
+
+end
