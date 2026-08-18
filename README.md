@@ -1,4 +1,4 @@
-# 🛡️ FortiNate (beta)
+# 🛡️ FortiHelper (beta)
 
 Browser-based generators for FortiGate / FortiOS CLI config. Paste a list,
 tweak options, copy the generated config into your FortiGate. Everything runs
