@@ -11,10 +11,6 @@ The app opens on a **Home** launcher that groups the tools by what you are
 trying to do — build config, change config, look things up. The nav bar
 carries the same split as hairline-separated groups.
 
-- **Templates** — fill in a site's details and get the whole build-out config.
-  The form is built from the template itself, so your own template works the
-  same way. The public build ships only a generic example — see
-  [Public and private builds](#public-and-private-builds).
 - **Object Helper** — turn a list of FQDNs, IPs, CIDRs, and IP ranges into
   `config firewall address` objects and address groups, with naming prefixes,
   comments, colors, interfaces, and more. A bulk comment can be added to every
@@ -43,6 +39,10 @@ carries the same split as hairline-separated groups.
   lot as one block — a debug sequence can be assembled across several sheets.
   See
   [Adding reference content](#adding-reference-content).
+- **Templates** — fill in a site's details and get the whole build-out config.
+  The form is built from the template itself, so your own template works the
+  same way. The public build ships only generic examples — see
+  [Public and private builds](#public-and-private-builds).
 
 Each tool keeps its everyday settings in view and tucks the rest behind an
 **Advanced** section. The header has a Theme control — light, dark, or follow

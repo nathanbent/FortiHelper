@@ -9,13 +9,8 @@ import { el } from './components';
 const GROUPS: { title: string; blurb: string; tools: { id: string; name: string; what: string }[] }[] = [
   {
     title: 'Build config',
-    blurb: 'Start from a list or a template and get CLI you can paste.',
+    blurb: 'Start from a list and get CLI you can paste.',
     tools: [
-      {
-        id: 'quickstart',
-        name: 'Templates',
-        what: 'Fill in a site’s details and get a whole build-out, VPN, or policy set.',
-      },
       {
         id: 'object-helper',
         name: 'Object Helper',
@@ -52,6 +47,17 @@ const GROUPS: { title: string; blurb: string; tools: { id: string; name: string;
         id: 'reference',
         name: 'Reference',
         what: 'Diagnostic cheat sheets, config snippets, and the colour-ID table.',
+      },
+    ],
+  },
+  {
+    title: 'Start from a template',
+    blurb: 'Whole config sets built from one form.',
+    tools: [
+      {
+        id: 'quickstart',
+        name: 'Templates',
+        what: 'Fill in a site’s details and get the whole config — use a built-in example or bring your own template.',
       },
     ],
   },
