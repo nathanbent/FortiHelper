@@ -1,4 +1,4 @@
-/** A tool that can be mounted into the FortiNate shell. */
+/** A tool that can be mounted into the FortiHelper shell. */
 export interface Tool {
   /** URL-hash id, e.g. "object-helper" → #/object-helper */
   id: string;

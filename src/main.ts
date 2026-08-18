@@ -26,7 +26,7 @@ const app = document.getElementById('app')!;
 
 const header = el('header', 'shell-header');
 const title = el('h1');
-title.append(document.createTextNode('🛡️ FortiNate'), el('span', 'beta', 'beta'));
+title.append(document.createTextNode('🛡️ FortiHelper'), el('span', 'beta', 'beta'));
 const nav = el('nav', 'shell-nav');
 header.append(title, nav, themePicker());
 
