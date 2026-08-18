@@ -19,6 +19,7 @@ import {
   type UrlFilterAction,
   type WildcardPrefix,
   type ExemptFlag,
+  type ActionDelimiter,
 } from '../lib/webfilter';
 
 const PLACEHOLDER = [
@@ -67,6 +68,11 @@ export const webfilterTool: Tool = {
       comment: '',
       bindProfile: false,
       profileName: 'webfilter',
+      perEntryActions: false,
+      actionDelimiter: '-',
+      vendorVerbs: false,
+      cleanUrls: false,
+      stripWww: false,
     };
     let text = '';
     // Rebuilding the panel would otherwise collapse the Advanced section
@@ -147,7 +153,7 @@ export const webfilterTool: Tool = {
           state.type ? TYPE_HINTS[state.type] : undefined,
         ),
         selectField(
-          'Action',
+          state.perEntryActions ? 'Default action (lines without a suffix)' : 'Action',
           [
             {
               value: 'block',
@@ -180,6 +186,73 @@ export const webfilterTool: Tool = {
 
       // --- Advanced ---
       const adv: HTMLElement[] = [];
+
+      // Migration helpers: input-parsing options, ahead of the output options.
+      adv.push(
+        checkbox(
+          'Per-entry actions',
+          state.perEntryActions,
+          (v) => {
+            state.perEntryActions = v;
+            renderOptions();
+            regenerate();
+          },
+          'contoso.com-block, zombo.com-exempt — lines without a suffix use the action above',
+        ),
+      );
+
+      if (state.perEntryActions) {
+        adv.push(
+          selectField(
+            'Action delimiter',
+            [
+              { value: '-', label: '- dash (contoso.com-block)' },
+              { value: ',', label: ', comma (contoso.com, block)' },
+              { value: ':', label: ': colon (contoso.com: block)' },
+              { value: ';', label: '; semicolon (contoso.com; block)' },
+              { value: 'whitespace', label: 'space or tab (contoso.com block)' },
+            ],
+            state.actionDelimiter,
+            (v) => {
+              state.actionDelimiter = v as ActionDelimiter;
+              regenerate();
+            },
+            'split at the last delimiter, so my-site.com is never broken apart',
+          ),
+          checkbox(
+            "Understand other vendors' verbs",
+            state.vendorVerbs,
+            (v) => {
+              state.vendorVerbs = v;
+              regenerate();
+            },
+            'deny/drop/reject → block · permit/pass/accept → allow · warn/log → monitor · ' +
+              'bypass/skip → exempt — for Sophos, WatchGuard, SonicWall, Lightspeed exports',
+          ),
+        );
+      }
+
+      adv.push(
+        checkbox(
+          'Tidy pasted URLs',
+          state.cleanUrls,
+          (v) => {
+            state.cleanUrls = v;
+            renderOptions();
+            regenerate();
+          },
+          'strip https://, paths, and ports, so full URLs from an export become bare domains',
+        ),
+      );
+
+      if (state.cleanUrls) {
+        adv.push(
+          checkbox('Also strip leading www.', state.stripWww, (v) => {
+            state.stripWww = v;
+            regenerate();
+          }),
+        );
+      }
 
       if (state.type === 'wildcard') {
         adv.push(
@@ -319,6 +392,12 @@ export const webfilterTool: Tool = {
     function regenerate() {
       const { output: script, warnings, stats } = generateWebfilter(text, state);
       const parts = [`${stats.domains} ${stats.domains === 1 ? 'entry' : 'entries'}`];
+      if (stats.actions) {
+        for (const a of ['block', 'exempt', 'allow', 'monitor'] as const) {
+          const n = stats.actions[a];
+          if (n) parts.push(`${n} ${a}`);
+        }
+      }
       if (state.type === 'auto' && stats.wildcardEntries > 0) {
         parts.push(`${stats.wildcardEntries} wildcard`);
       }

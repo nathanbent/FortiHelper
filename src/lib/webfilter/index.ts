@@ -21,6 +21,56 @@ export type WebfilterFormat = 'bare' | 'entries' | 'full';
 /** Optional `*` / `*.` prefix applied to each domain for wildcard entries. */
 export type WildcardPrefix = 'none' | '*' | '*.';
 
+/** Delimiter between a URL and its per-entry action suffix. */
+export type ActionDelimiter = '-' | ',' | ':' | ';' | 'whitespace';
+
+/** FortiOS action names, always accepted as per-entry suffixes. */
+const NATIVE_ACTIONS: Record<string, UrlFilterAction> = {
+  block: 'block',
+  exempt: 'exempt',
+  allow: 'allow',
+  monitor: 'monitor',
+};
+
+/**
+ * Other vendors' action verbs → the closest FortiOS action, for lists exported
+ * from Sophos, WatchGuard, SonicWall, Lightspeed, and the like. `warn` has no
+ * FortiOS equivalent in a static URL filter — `monitor` (allow + log) is the
+ * nearest behavior, and using it surfaces a warning so the mapping is visible.
+ */
+export const VENDOR_VERBS: Record<string, UrlFilterAction> = {
+  deny: 'block',
+  denied: 'block',
+  drop: 'block',
+  reject: 'block',
+  rejected: 'block',
+  blocked: 'block',
+  prohibit: 'block',
+  prohibited: 'block',
+  forbidden: 'block',
+  blacklist: 'block',
+  blacklisted: 'block',
+  permit: 'allow',
+  permitted: 'allow',
+  pass: 'allow',
+  accept: 'allow',
+  accepted: 'allow',
+  allowed: 'allow',
+  trust: 'allow',
+  trusted: 'allow',
+  whitelist: 'allow',
+  whitelisted: 'allow',
+  warn: 'monitor',
+  warning: 'monitor',
+  log: 'monitor',
+  audit: 'monitor',
+  bypass: 'exempt',
+  skip: 'exempt',
+  exclude: 'exempt',
+  excluded: 'exempt',
+  exempted: 'exempt',
+};
+
 /**
  * Scanning and filtering operations an exempt entry can skip, in the order the
  * admin guide lists them. Only meaningful when the action is `exempt`.
@@ -65,6 +115,29 @@ export interface WebfilterOptions {
   dedupe?: boolean;
   /** Case-insensitive sort. Default true. */
   sort?: boolean;
+
+  /**
+   * Parse a per-entry action suffix (`contoso.com-block`), for lists that
+   * carry their own verdicts. Lines without a recognized suffix use `action`.
+   * Default false.
+   */
+  perEntryActions?: boolean;
+  /** Delimiter before the action suffix. Default '-'. */
+  actionDelimiter?: ActionDelimiter;
+  /**
+   * With `perEntryActions`, also accept other vendors' verbs as suffixes
+   * (deny → block, permit → allow, warn → monitor, bypass → exempt, …).
+   * Default false.
+   */
+  vendorVerbs?: boolean;
+  /**
+   * Strip `scheme://`, credentials, paths, ports, and trailing dots from each
+   * entry, so full URLs from a vendor export become bare domains. Not applied
+   * when `type` is regex. Default false.
+   */
+  cleanUrls?: boolean;
+  /** With `cleanUrls`, also strip a leading `www.`. Default false. */
+  stripWww?: boolean;
 
   /** Output shape. Default 'bare'. */
   format?: WebfilterFormat;
@@ -119,6 +192,8 @@ export interface WebfilterResult {
     duplicatesRemoved: number;
     /** How many emitted entries resolved to `wildcard` type. */
     wildcardEntries: number;
+    /** Resolved action counts, only populated when `perEntryActions` is on. */
+    actions?: Partial<Record<UrlFilterAction, number>>;
   };
 }
 
@@ -158,6 +233,47 @@ function q(value: string): string {
 }
 
 /**
+ * Split off a would-be action suffix at the *last* delimiter, so domains that
+ * contain the delimiter themselves survive: `my-site.com` splits into
+ * `my` + `site.com`, which is not a verb, and the line is kept whole.
+ */
+function splitActionSuffix(
+  s: string,
+  delimiter: ActionDelimiter,
+): { rest: string; suffix: string } | undefined {
+  const idx =
+    delimiter === 'whitespace'
+      ? Math.max(s.lastIndexOf(' '), s.lastIndexOf('\t'))
+      : s.lastIndexOf(delimiter);
+  if (idx <= 0 || idx >= s.length - 1) return undefined;
+  const rest = s.slice(0, idx).trim();
+  const suffix = s.slice(idx + 1).trim();
+  if (!rest || !suffix) return undefined;
+  return { rest, suffix };
+}
+
+/** Reduce a pasted URL to its host: scheme, credentials, path, port, trailing dot. */
+function cleanUrl(s: string, stripWww: boolean): string {
+  let u = s.replace(/^[A-Za-z][A-Za-z0-9+.-]*:\/\//, '');
+  const cut = u.search(/[/?#]/);
+  if (cut !== -1) u = u.slice(0, cut);
+  const at = u.lastIndexOf('@');
+  if (at !== -1) u = u.slice(at + 1);
+  u = u.replace(/:\d+$/, '');
+  u = u.replace(/\.+$/, '');
+  // Only strip www. when a domain is left behind (never turn www.com into com).
+  if (stripWww && /^www\./i.test(u) && u.slice(4).includes('.')) u = u.slice(4);
+  return u;
+}
+
+/** One parsed input line: the URL plus its per-entry action, if it had one. */
+interface Entry {
+  url: string;
+  /** Overrides the list-level action when set. */
+  action?: UrlFilterAction;
+}
+
+/**
  * Port of webfilter-generator.py: normalize a domain list and emit FortiOS
  * urlfilter entries.
  *
@@ -179,11 +295,22 @@ export function generateWebfilter(input: string, options: WebfilterOptions = {})
   const includeSubdomains = options.includeSubdomains;
   const bindProfile = options.bindProfile ?? false;
   const profileName = options.profileName ?? 'webfilter';
+  const perEntryActions = options.perEntryActions ?? false;
+  const actionDelimiter = options.actionDelimiter ?? '-';
+  const vendorVerbs = options.vendorVerbs ?? false;
+  const cleanUrls = (options.cleanUrls ?? false) && type !== 'regex';
+  const stripWww = options.stripWww ?? false;
 
   const warnings: Warning[] = [];
-  const seen = new Set<string>();
-  const out: string[] = [];
+  // Resolved action per lowercased URL, for dedupe and conflict warnings.
+  const seen = new Map<string, UrlFilterAction>();
+  const out: Entry[] = [];
   let duplicatesRemoved = 0;
+  let warnedWarnMapping = false;
+
+  if ((options.cleanUrls ?? false) && type === 'regex') {
+    warnings.push({ message: 'URL cleanup is not applied when the type is regex' });
+  }
 
   // `*facebook.com` and regex patterns are not domain names, so the domain
   // shape warning would be pure noise for those. Under 'auto' it is decided
@@ -207,6 +334,36 @@ export function generateWebfilter(input: string, options: WebfilterOptions = {})
     ) {
       s = s.slice(1, -1).trim();
     }
+    // A per-entry suffix only takes effect when it resolves to an action, so
+    // a hyphenated domain (my-site.com) is never split apart by accident.
+    let entryAction: UrlFilterAction | undefined;
+    if (perEntryActions) {
+      const split = splitActionSuffix(s, actionDelimiter);
+      if (split) {
+        const verb = split.suffix.toLowerCase();
+        const mapped = NATIVE_ACTIONS[verb] ?? (vendorVerbs ? VENDOR_VERBS[verb] : undefined);
+        if (mapped) {
+          entryAction = mapped;
+          s = split.rest;
+          if (!warnedWarnMapping && (verb === 'warn' || verb === 'warning')) {
+            warnedWarnMapping = true;
+            warnings.push({
+              message:
+                'warn has no FortiOS equivalent in a static URL filter — mapped to monitor (allow + log)',
+            });
+          }
+        } else if (actionDelimiter !== '-') {
+          // With a dash the delimiter appears inside ordinary domains, so an
+          // unmatched suffix is normal; with any other delimiter it is almost
+          // certainly a typo'd verb worth flagging.
+          warnings.push({
+            line: i + 1,
+            message: `"${split.suffix}" is not a recognized action — line kept as-is`,
+          });
+        }
+      }
+    }
+    if (cleanUrls) s = cleanUrl(s, stripWww);
     // The Python DOMAIN_RE check is a deliberate no-op (non-standard names
     // are kept); we surface a warning but never reject the entry.
     if (shouldWarn(s) && !DOMAIN_RE.test(s)) {
@@ -216,31 +373,39 @@ export function generateWebfilter(input: string, options: WebfilterOptions = {})
       });
     }
     const key = s.toLowerCase();
+    const resolved = entryAction ?? action;
     if (dedupe && seen.has(key)) {
       duplicatesRemoved++;
+      const kept = seen.get(key)!;
+      if (kept !== resolved) {
+        warnings.push({
+          line: i + 1,
+          message: `"${s}" repeats with a different action — kept ${kept}, ignored ${resolved}`,
+        });
+      }
       continue;
     }
-    seen.add(key);
-    out.push(s);
+    seen.set(key, resolved);
+    out.push({ url: s, action: entryAction });
   }
 
   if (sort) {
     // Stable sort on the lowercased value, matching list.sort(key=str.lower).
     out.sort((a, b) => {
-      const ka = a.toLowerCase();
-      const kb = b.toLowerCase();
+      const ka = a.url.toLowerCase();
+      const kb = b.url.toLowerCase();
       return ka < kb ? -1 : ka > kb ? 1 : 0;
     });
   }
 
   // Domains that already carry a `*` anywhere are wildcards as typed, so
   // prefixing them would change what they match.
-  const urls =
+  const entries =
     type === 'wildcard' && wildcardPrefix !== 'none'
-      ? out.map((d) => (d.includes('*') ? d : wildcardPrefix + d))
+      ? out.map((e) => (e.url.includes('*') ? e : { ...e, url: wildcardPrefix + e.url }))
       : out;
 
-  if (exempt.length && action !== 'exempt') {
+  if (exempt.length && action !== 'exempt' && !entries.some((e) => e.action === 'exempt')) {
     warnings.push({ message: 'set exempt is only used when the action is exempt — ignored' });
   }
   // Under 'auto' the list may still hold simple entries, so only an explicit
@@ -251,8 +416,17 @@ export function generateWebfilter(input: string, options: WebfilterOptions = {})
     });
   }
 
-  const output = urls.length
-    ? emit(urls, {
+  let actionCounts: Partial<Record<UrlFilterAction, number>> | undefined;
+  if (perEntryActions) {
+    actionCounts = {};
+    for (const e of entries) {
+      const a = e.action ?? action;
+      actionCounts[a] = (actionCounts[a] ?? 0) + 1;
+    }
+  }
+
+  const output = entries.length
+    ? emit(entries, {
         status,
         action,
         format,
@@ -274,7 +448,8 @@ export function generateWebfilter(input: string, options: WebfilterOptions = {})
     stats: {
       domains: out.length,
       duplicatesRemoved,
-      wildcardEntries: urls.filter((u) => resolveType(u, type) === 'wildcard').length,
+      wildcardEntries: entries.filter((e) => resolveType(e.url, type) === 'wildcard').length,
+      actions: actionCounts,
     },
   };
 }
@@ -298,25 +473,26 @@ interface EmitOptions {
  * `set exempt` value, or '' when there is nothing to emit. Flags are ordered as
  * the admin guide lists them; `all` covers the rest so it is emitted alone.
  */
-function exemptValue(o: EmitOptions): string {
-  if (o.action !== 'exempt' || !o.exempt.length) return '';
-  if (o.exempt.includes('all')) return 'all';
-  return EXEMPT_FLAGS.filter((f) => o.exempt.includes(f)).join(' ');
+function exemptValue(exempt: ExemptFlag[]): string {
+  if (!exempt.length) return '';
+  if (exempt.includes('all')) return 'all';
+  return EXEMPT_FLAGS.filter((f) => exempt.includes(f)).join(' ');
 }
 
 /** Render the entry list. Returns joined lines with no trailing newline. */
-function emit(urls: string[], o: EmitOptions): string {
+function emit(entries: Entry[], o: EmitOptions): string {
   const lines: string[] = [];
-  const exempt = exemptValue(o);
+  const exempt = exemptValue(o.exempt);
 
   if (o.format === 'bare') {
-    for (const url of urls) {
-      lines.push(`edit "${q(url)}"`);
+    for (const e of entries) {
+      const action = e.action ?? o.action;
+      lines.push(`edit "${q(e.url)}"`);
       if (o.status !== 'omit') lines.push(`set status ${o.status}`);
       // The original script emits an action line only for exempt.
-      if (o.action !== 'block') lines.push(`set action ${o.action}`);
-      if (exempt) lines.push(`set exempt ${exempt}`);
-      const type = resolveType(url, o.type);
+      if (action !== 'block') lines.push(`set action ${action}`);
+      if (action === 'exempt' && exempt) lines.push(`set exempt ${exempt}`);
+      const type = resolveType(e.url, o.type);
       if (type) lines.push(`set type ${type}`);
       lines.push('next');
     }
@@ -325,13 +501,14 @@ function emit(urls: string[], o: EmitOptions): string {
 
   // Numbered entries: the URL moves from the edit key to `set url`.
   const entry: string[] = [];
-  urls.forEach((url, i) => {
+  entries.forEach((e, i) => {
+    const action = e.action ?? o.action;
     entry.push(`edit ${o.startId + i}`);
-    entry.push(`set url "${q(url)}"`);
-    const type = resolveType(url, o.type);
+    entry.push(`set url "${q(e.url)}"`);
+    const type = resolveType(e.url, o.type);
     if (type) entry.push(`set type ${type}`);
-    entry.push(`set action ${o.action}`);
-    if (exempt) entry.push(`set exempt ${exempt}`);
+    entry.push(`set action ${action}`);
+    if (action === 'exempt' && exempt) entry.push(`set exempt ${exempt}`);
     if (o.status !== 'omit') entry.push(`set status ${o.status}`);
     entry.push('next');
   });

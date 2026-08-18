@@ -25,6 +25,12 @@ carries the same split as hairline-separated groups.
   Output as bare entry blocks, numbered `config entries` bodies, or a complete
   `config webfilter urlfilter` list — optionally followed by the
   `config webfilter profile` block that binds it via `set urlfilter-table`.
+  For migrating off another vendor's filter, opt-in helpers under Advanced
+  accept a per-entry action suffix (`contoso.com-block`, `zombo.com-exempt`,
+  with a choice of delimiter), translate other vendors' verbs (deny/drop →
+  block, permit/pass → allow, warn/log → monitor, bypass/skip → exempt), and
+  tidy pasted URLs down to bare domains (stripping `https://`, paths, and
+  ports).
 - **Content Filter** — turn a banned-word list into `config webfilter content`
   entries: `wildcard` / `regexp` pattern types, per-pattern score, language,
   and `block` / `exempt` actions, optionally followed by the

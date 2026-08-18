@@ -456,3 +456,159 @@ describe('generateWebfilter list-level options', () => {
     }
   });
 });
+
+describe('per-entry actions', () => {
+  const opts: WebfilterOptions = { format: 'entries', sort: false, perEntryActions: true };
+
+  it('parses an action suffix per line, defaulting lines without one', () => {
+    const { output, stats } = generateWebfilter(
+      'contoso.com-block\nzombo.com-exempt\nexample.org\n',
+      opts,
+    );
+    expect(output).toContain('set url "contoso.com"');
+    expect(output).toContain('set url "zombo.com"');
+    expect(output).toContain('set url "example.org"');
+    expect(output).toContain('set action exempt');
+    expect(output.match(/set action block/g)).toHaveLength(2);
+    expect(stats.actions).toEqual({ block: 2, exempt: 1 });
+  });
+
+  it('never splits a hyphenated domain whose suffix is not a verb', () => {
+    const { output, warnings } = generateWebfilter('my-site.com\n', opts);
+    expect(output).toContain('set url "my-site.com"');
+    expect(warnings).toHaveLength(0);
+  });
+
+  it('does not report action counts when the option is off', () => {
+    const { stats } = generateWebfilter('a.example\n', { format: 'entries' });
+    expect(stats.actions).toBeUndefined();
+  });
+
+  it('accepts vendor verbs only when vendorVerbs is on', () => {
+    const off = generateWebfilter('contoso.com-deny\n', opts);
+    expect(off.output).toContain('set url "contoso.com-deny"');
+    const on = generateWebfilter('contoso.com-deny\n', { ...opts, vendorVerbs: true });
+    expect(on.output).toContain('set url "contoso.com"');
+    expect(on.output).toContain('set action block');
+  });
+
+  it('maps vendor verbs and flags the warn → monitor mapping', () => {
+    const { output, warnings } = generateWebfilter('a.com-permit\nb.com-warn\nc.com-bypass\n', {
+      ...opts,
+      vendorVerbs: true,
+    });
+    expect(output).toContain('set action allow');
+    expect(output).toContain('set action monitor');
+    expect(output).toContain('set action exempt');
+    expect(warnings.filter((w) => w.message.includes('mapped to monitor'))).toHaveLength(1);
+  });
+
+  it('warns on an unrecognized suffix for non-dash delimiters', () => {
+    const { output, warnings } = generateWebfilter('contoso.com, blok\n', {
+      ...opts,
+      actionDelimiter: ',',
+    });
+    expect(warnings.some((w) => w.message.includes('not a recognized action'))).toBe(true);
+    expect(output).toContain('set url "contoso.com, blok"');
+  });
+
+  it('supports comma, colon, semicolon, and whitespace delimiters', () => {
+    const cases = [
+      [',', 'contoso.com, block'],
+      [':', 'contoso.com: block'],
+      [';', 'contoso.com; block'],
+      ['whitespace', 'contoso.com block'],
+      ['whitespace', 'contoso.com\tblock'],
+    ] as const;
+    for (const [actionDelimiter, line] of cases) {
+      const { output } = generateWebfilter(`${line}\n`, { ...opts, actionDelimiter });
+      expect(output, line).toContain('set url "contoso.com"');
+      expect(output, line).toContain('set action block');
+    }
+  });
+
+  it('warns when the same domain repeats with a different action', () => {
+    const { warnings, stats } = generateWebfilter('a.com-block\na.com-allow\n', opts);
+    expect(stats.duplicatesRemoved).toBe(1);
+    expect(warnings.some((w) => w.message.includes('different action'))).toBe(true);
+  });
+
+  it('stays silent when a duplicate repeats the same action', () => {
+    const { warnings, stats } = generateWebfilter('a.com-block\na.com\n', opts);
+    expect(stats.duplicatesRemoved).toBe(1);
+    expect(warnings).toHaveLength(0);
+  });
+
+  it('emits exempt flags only on exempt entries, without the unused-exempt warning', () => {
+    const { output, warnings } = generateWebfilter('a.com-exempt\nb.com\n', {
+      ...opts,
+      action: 'block',
+      exempt: ['av'],
+    });
+    expect(output.match(/set exempt av/g)).toHaveLength(1);
+    expect(warnings).toHaveLength(0);
+  });
+
+  it('emits per-entry actions in bare format, still skipping the block action line', () => {
+    const { output } = generateWebfilter('a.com-allow\nb.com\n', {
+      ...opts,
+      format: 'bare',
+    });
+    expect(output).toBe(
+      'edit "a.com"\nset status enable\nset action allow\nnext\n' +
+        'edit "b.com"\nset status enable\nnext\n',
+    );
+  });
+});
+
+describe('URL cleanup', () => {
+  const opts: WebfilterOptions = { format: 'bare', sort: false, cleanUrls: true };
+
+  it('strips scheme, path, query, port, credentials, and trailing dots', () => {
+    const { output } = generateWebfilter(
+      [
+        'https://contoso.com/some/path?q=1',
+        'http://user:pw@example.org:8080/x',
+        'zombo.com.',
+      ].join('\n') + '\n',
+      opts,
+    );
+    expect(output).toContain('edit "contoso.com"');
+    expect(output).toContain('edit "example.org"');
+    expect(output).toContain('edit "zombo.com"');
+  });
+
+  it('dedupes after cleanup', () => {
+    const { stats } = generateWebfilter('https://contoso.com/a\ncontoso.com\n', opts);
+    expect(stats.domains).toBe(1);
+    expect(stats.duplicatesRemoved).toBe(1);
+  });
+
+  it('strips www. only when asked, and never down to a bare TLD', () => {
+    const off = generateWebfilter('www.contoso.com\n', opts);
+    expect(off.output).toContain('edit "www.contoso.com"');
+    const on = generateWebfilter('www.contoso.com\nwww.com\n', { ...opts, stripWww: true });
+    expect(on.output).toContain('edit "contoso.com"');
+    expect(on.output).toContain('edit "www.com"');
+  });
+
+  it('is skipped for regex type, with a warning', () => {
+    const { output, warnings } = generateWebfilter('.*\\.foo\\.com/bar\n', {
+      ...opts,
+      type: 'regex',
+    });
+    expect(output).toContain('edit ".*\\.foo\\.com/bar"');
+    expect(warnings.some((w) => w.message.includes('regex'))).toBe(true);
+  });
+
+  it('cleans after a per-entry suffix is split off', () => {
+    const { output } = generateWebfilter('https://contoso.com/x, block\n', {
+      format: 'entries',
+      perEntryActions: true,
+      actionDelimiter: ',',
+      cleanUrls: true,
+    });
+    expect(output).toContain('set url "contoso.com"');
+    expect(output).toContain('set action block');
+  });
+});
