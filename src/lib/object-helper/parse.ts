@@ -227,14 +227,29 @@ export function validateFqdn(fqdn: string, opts: { lowercaseFqdn: boolean }): st
   return f;
 }
 
+// Characters newer FortiOS builds refuse in object names, failing the edit
+// with "The string contains XSS vulnerability characters".
+const FORTIOS_UNSAFE_NAME_CHARS = /[()<>'#]/g;
+
 /**
  * Sanitize an object name, mirroring safe_obj_name(): strip double quotes,
  * newlines to spaces, collapse whitespace. Warns (does not fail) when the
- * result exceeds the FortiGate name length limit.
+ * result exceeds the FortiGate name length limit. With `fortiosSafe` the
+ * characters FortiOS rejects in names are dropped too, warning per rename —
+ * an addition over the Python script, gated so it can be switched off.
  */
-export function safeObjName(name: string, warn: WarnSink): string {
+export function safeObjName(name: string, warn: WarnSink, fortiosSafe = false): string {
   let n = name.replace(/"/g, '').replace(/\n/g, ' ').trim();
   n = n.replace(/\s+/g, ' ');
+  if (fortiosSafe) {
+    const cleaned = n.replace(FORTIOS_UNSAFE_NAME_CHARS, '').replace(/\s+/g, ' ').trim();
+    if (cleaned !== n) {
+      warn(
+        `Warning: renamed '${n}' to '${cleaned}' — FortiOS rejects ( ) < > ' # in object names.`,
+      );
+      n = cleaned;
+    }
+  }
   if (!n) throw new Error('empty object name');
   if (n.length > MAX_OBJ_NAME_LEN) {
     warn(

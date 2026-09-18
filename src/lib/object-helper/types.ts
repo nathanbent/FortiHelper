@@ -44,6 +44,14 @@ export interface ObjectHelperOptions {
   enableColor: boolean;
   colorId: number;
 
+  /**
+   * Strip characters some FortiOS builds reject in object names with
+   * "The string contains XSS vulnerability characters": ( ) < > ' #.
+   * Each rename is reported as a warning. Not part of the Python script;
+   * turning it off restores the script's exact naming behavior.
+   */
+  sanitizeNames: boolean;
+
   // --- Input format ---
   useExplicitNames: boolean;
   useInputComment: boolean;
@@ -116,6 +124,8 @@ export const DEFAULT_OPTIONS: ObjectHelperOptions = {
   bulkCommentSeparator: ' | ',
   enableColor: false,
   colorId: 0,
+
+  sanitizeNames: true,
 
   useExplicitNames: false,
   useInputComment: false,

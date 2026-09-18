@@ -19,7 +19,11 @@ carries the same split as hairline-separated groups.
   Excel** (or Google Sheets / LibreOffice): the spreadsheet-paste mode reads
   the tab-separated cells the clipboard carries, auto-detects a header row
   and which columns hold the name, the address, and the comment, and offers
-  dropdowns to override any of that per paste.
+  dropdowns to override any of that per paste. **FortiOS-safe names** (on by
+  default) strips `( ) < > ' #` from object names — characters FortiOS
+  refuses with "The string contains XSS vulnerability characters" — warning
+  with each rename; `0.0.0.0/32` objects are flagged as likely unconfigured
+  placeholders from the source export.
 - **Webfilter Generator** — turn a domain list into static URL filter entries,
   emitting a complete `config webfilter urlfilter` list by default.
   Types are detected per entry by default (a domain containing `*` is a
