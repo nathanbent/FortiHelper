@@ -30,4 +30,17 @@ export {
   validateFqdn,
 } from './parse';
 export type { InputRecord, WarnSink } from './parse';
-export { collectFqdnsToResolve, generateObjects, resolveGroupName } from './generate';
+export {
+  collectFqdnsFromRecords,
+  collectFqdnsToResolve,
+  generateFromRecords,
+  generateObjects,
+  resolveGroupName,
+} from './generate';
+export {
+  columnLabel,
+  detectSpreadsheetMapping,
+  parseSpreadsheet,
+  spreadsheetRecords,
+} from './spreadsheet';
+export type { SpreadsheetMapping, SpreadsheetTable } from './spreadsheet';

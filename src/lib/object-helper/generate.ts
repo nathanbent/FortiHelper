@@ -2,7 +2,7 @@ import type { DnsResults, GenerateResult, ObjectHelperOptions } from './types';
 import { defaultResolvedAt, withDefaults } from './types';
 import type { IPv4Network, IPv4Range } from './ipv4';
 import { tryParseIpNetwork, tryParseIpRange } from './ipv4';
-import type { WarnSink } from './parse';
+import type { InputRecord, WarnSink } from './parse';
 import {
   iterRecords,
   loadMeaningfulLines,
@@ -23,7 +23,10 @@ interface Ctx {
 
 function buildBaseName(ctx: Ctx, nameFromInput: string | null, fqdn: string): string {
   const { opts } = ctx;
-  const raw = opts.useExplicitNames || opts.nameFqdnDelimiter ? (nameFromInput ?? '') : fqdn;
+  // In the named modes a missing (null) name falls back to the FQDN — the
+  // classic input formats always supply a string, so this only happens for
+  // spreadsheet rows with an empty name cell.
+  const raw = opts.useExplicitNames || opts.nameFqdnDelimiter ? (nameFromInput ?? fqdn) : fqdn;
   const base = safeObjName(raw, ctx.warn);
   if (opts.enablePrefix && opts.namePrefix) {
     return safeObjName(`${opts.namePrefix}${opts.namePrefixDelim}${base}`, ctx.warn);
@@ -228,7 +231,15 @@ export function collectFqdnsToResolve(
 ): string[] {
   const opts = withDefaults(options);
   const lines = loadMeaningfulLines(input);
-  const records = iterRecords(lines, opts, () => {});
+  return collectFqdnsFromRecords(iterRecords(lines, opts, () => {}), options);
+}
+
+/** Same scan as collectFqdnsToResolve, over already-parsed records. */
+export function collectFqdnsFromRecords(
+  records: InputRecord[],
+  options: Partial<ObjectHelperOptions> = {},
+): string[] {
+  const opts = withDefaults(options);
   const fqdns = new Set<string>();
   for (const record of records) {
     try {
@@ -257,8 +268,35 @@ export function generateObjects(
   dns: DnsResults = {},
 ): GenerateResult {
   const opts = withDefaults(options);
-  const resolvedAt = opts.resolvedAt ?? defaultResolvedAt();
   const { warnings, warn } = makeWarningCollector();
+  const lines = loadMeaningfulLines(input);
+  const records = iterRecords(lines, opts, warn);
+  return generateCore(records, opts, dns, warnings, warn);
+}
+
+/**
+ * Generation over already-parsed records — the spreadsheet input mode
+ * builds its records from pasted cells rather than lines of text.
+ * Behavior past parsing is identical to generateObjects().
+ */
+export function generateFromRecords(
+  records: InputRecord[],
+  options: Partial<ObjectHelperOptions> = {},
+  dns: DnsResults = {},
+): GenerateResult {
+  const opts = withDefaults(options);
+  const { warnings, warn } = makeWarningCollector();
+  return generateCore(records, opts, dns, warnings, warn);
+}
+
+function generateCore(
+  records: InputRecord[],
+  opts: ObjectHelperOptions,
+  dns: DnsResults,
+  warnings: GenerateResult['warnings'],
+  warn: WarnSink,
+): GenerateResult {
+  const resolvedAt = opts.resolvedAt ?? defaultResolvedAt();
   const out: string[] = [];
   const ctx: Ctx = { opts, resolvedAt, warn, out };
 
@@ -273,9 +311,6 @@ export function generateObjects(
   const createdObjects: string[] = [];
   const createdObjectNames = new Set<string>();
   const perFqdnGroups: [string, string[]][] = [];
-
-  const lines = loadMeaningfulLines(input);
-  const records = iterRecords(lines, opts, warn);
 
   if (opts.startWithConfigFirewallAddress) out.push('config firewall address\n');
 
