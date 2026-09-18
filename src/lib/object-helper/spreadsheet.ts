@@ -116,17 +116,27 @@ const VALUE_HEADER =
   /^(address(es)?|ips?|ip ?address(es)?|fqdns?|domains?|hosts?|subnets?|networks?|cidrs?|values?|destinations?|urls?)$/i;
 const COMMENT_HEADER = /^(comments?|descriptions?|desc|notes?|remarks?|info)$/i;
 
-/** Does the cell parse as something the generator accepts as a value? */
-function isValueLike(cell: string): boolean {
-  if (!cell) return false;
-  if (tryParseIpNetwork(cell) !== null) return true;
-  if (tryParseIpRange(cell) !== null) return true;
+/**
+ * How strongly the cell reads as an address value. IPs, CIDRs, and ranges
+ * outweigh FQDN-shaped cells: interface names like "x1.4" or "ge0.100"
+ * validate as FQDNs, so in a sheet carrying both an interface column and a
+ * real address column the addresses must win the column vote.
+ */
+function valueScore(cell: string): number {
+  if (!cell) return 0;
+  if (tryParseIpNetwork(cell) !== null) return 2;
+  if (tryParseIpRange(cell) !== null) return 2;
   try {
     validateFqdn(cell, { lowercaseFqdn: true });
-    return true;
+    return 1;
   } catch {
-    return false;
+    return 0;
   }
+}
+
+/** Does the cell parse as something the generator accepts as a value? */
+function isValueLike(cell: string): boolean {
+  return valueScore(cell) > 0;
 }
 
 /** Leftmost column with the highest score, or null when all scores are 0. */
@@ -164,9 +174,10 @@ export function detectSpreadsheetMapping(table: SpreadsheetTable): SpreadsheetMa
   const scoreData: number[] = new Array(width).fill(0);
   rows.forEach((r, ri) => {
     for (let c = 0; c < width; c++) {
-      if (isValueLike(r[c] ?? '')) {
-        scoreAll[c]++;
-        if (ri > 0) scoreData[c]++;
+      const s = valueScore(r[c] ?? '');
+      if (s > 0) {
+        scoreAll[c] += s;
+        scoreData[c] += ri > 0 ? s : 0;
       }
     }
   });

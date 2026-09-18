@@ -126,6 +126,21 @@ describe('detectSpreadsheetMapping', () => {
     expect(m.valueCol).toBe(1);
     expect(m.nameCol).toBe(0);
   });
+
+  it('prefers an IP/CIDR column over an FQDN-shaped interface column', () => {
+    // "x1.4" etc. validate as FQDNs, but real addresses must win the vote.
+    const t = table(
+      ['Data-VLAN\tx1.4\t172.17.4.1/24\tVLAN4', 'Mgmt-VLAN\tx1.254\t10.0.254.1/24\tVLAN254'].join(
+        '\n',
+      ) + '\n',
+    );
+    expect(detectSpreadsheetMapping(t)).toEqual({
+      hasHeader: false,
+      nameCol: 0,
+      valueCol: 2,
+      commentCol: 3,
+    });
+  });
 });
 
 describe('spreadsheetRecords', () => {
@@ -202,6 +217,37 @@ describe('generateFromRecords with spreadsheet input', () => {
     expect(result.output).toContain('edit "Prefix-10.0.0.53"');
     expect(result.output).toContain('set comment "Internal resolver"');
     expect(result.stats.total).toBe(3);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('imports a VLAN interface table: name | interface | gateway/prefix | VLAN', () => {
+    // The shape of a switch/firewall VLAN sheet: no header, an interface
+    // column the mapping must skip, and gateway IPs whose host bits are
+    // masked off so the objects describe the VLAN subnets.
+    const t = table(
+      [
+        'Legacy-VLAN\tx1.1\t172.16.1.2/16\tVLAN1',
+        'Data-VLAN\tx1.4\t172.17.4.1/24\tVLAN4',
+        'Guest-VLAN\tx1.250\t10.250.0.1/19\tVLAN250',
+      ].join('\n') + '\n',
+    );
+    const mapping = detectSpreadsheetMapping(t);
+    expect(mapping).toEqual({ hasHeader: false, nameCol: 0, valueCol: 2, commentCol: 3 });
+    const records = spreadsheetRecords(t, { ...mapping, valueCol: 2 }, () => {});
+    const result = generateFromRecords(records, {
+      useExplicitNames: true,
+      resolvedAt: RESOLVED_AT,
+    });
+
+    expect(result.output).toContain('edit "Prefix-Legacy-VLAN"');
+    expect(result.output).toContain('set subnet 172.16.0.0 255.255.0.0');
+    expect(result.output).toContain('edit "Prefix-Data-VLAN"');
+    expect(result.output).toContain('set subnet 172.17.4.0 255.255.255.0');
+    expect(result.output).toContain('set comment "VLAN4"');
+    expect(result.output).toContain('edit "Prefix-Guest-VLAN"');
+    expect(result.output).toContain('set subnet 10.250.0.0 255.255.224.0');
+    expect(result.output).not.toContain('x1.'); // interface column ignored
+    expect(result.stats.writtenDirectIp).toBe(3);
     expect(result.warnings).toEqual([]);
   });
 });
