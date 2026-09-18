@@ -14,7 +14,12 @@ carries the same split as hairline-separated groups.
 - **Object Helper** — turn a list of FQDNs, IPs, CIDRs, and IP ranges into
   `config firewall address` objects and address groups, with naming prefixes,
   comments, colors, interfaces, and more. A bulk comment can be added to every
-  object, appended to whatever comment it already has.
+  object, appended to whatever comment it already has. Input can be plain
+  lines, name/value pairs, delimited lines, or a straight **paste from
+  Excel** (or Google Sheets / LibreOffice): the spreadsheet-paste mode reads
+  the tab-separated cells the clipboard carries, auto-detects a header row
+  and which columns hold the name, the address, and the comment, and offers
+  dropdowns to override any of that per paste.
 - **Webfilter Generator** — turn a domain list into static URL filter entries,
   emitting a complete `config webfilter urlfilter` list by default.
   Types are detected per entry by default (a domain containing `*` is a
