@@ -311,6 +311,7 @@ function generateCore(
   const createdObjects: string[] = [];
   const createdObjectNames = new Set<string>();
   const perFqdnGroups: [string, string[]][] = [];
+  const placeholdersSkipped: string[] = [];
 
   if (opts.startWithConfigFirewallAddress) out.push('config firewall address\n');
 
@@ -325,7 +326,13 @@ function generateCore(
         else if (network.prefixlen === 32) rawName = network.networkAddress;
         else rawName = `${network.networkAddress}${opts.ipCidrSeparator}${network.prefixlen}`;
         const objName = applyPrefix(ctx, safeObjName(rawName, warn, opts.sanitizeNames));
-        if (createdObjectNames.has(objName)) {
+        // 0.0.0.0/32 is what exports emit for an unconfigured interface —
+        // FortiGate accepts it, but it almost never means anything.
+        const isPlaceholder = network.prefixlen === 32 && network.networkAddress === '0.0.0.0';
+        if (isPlaceholder && opts.skipPlaceholderIps) {
+          skipped++;
+          placeholdersSkipped.push(objName);
+        } else if (createdObjectNames.has(objName)) {
           duplicates++;
           warn(`Duplicate object name skipped: '${objName}'`, lineno);
         } else {
@@ -333,9 +340,7 @@ function generateCore(
           createdObjectNames.add(objName);
           createdObjects.push(objName);
           writtenDirectIp++;
-          // 0.0.0.0/32 is what exports emit for an unconfigured interface —
-          // FortiGate accepts it, but it almost never means anything.
-          if (network.prefixlen === 32 && network.networkAddress === '0.0.0.0') {
+          if (isPlaceholder) {
             warn(
               `Warning: '${objName}' is 0.0.0.0/32 — likely an unconfigured ` +
                 `placeholder in the source export.`,
@@ -432,6 +437,15 @@ function generateCore(
       const msg = e instanceof Error ? e.message : String(e);
       warn(`Skipped ${who}fqdn='${fqdnLine}': ${msg}`, lineno);
     }
+  }
+
+  // One summary line instead of a warning per dropped row — a SonicWall
+  // export can carry dozens of these stubs.
+  if (placeholdersSkipped.length) {
+    warn(
+      `Skipped ${placeholdersSkipped.length} 0.0.0.0/32 object(s) — unconfigured ` +
+        `placeholders in the source export: ${placeholdersSkipped.join(', ')}`,
+    );
   }
 
   if (opts.endConfigFirewallAddress) out.push('end\n\n');

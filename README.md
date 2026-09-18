@@ -22,8 +22,10 @@ carries the same split as hairline-separated groups.
   dropdowns to override any of that per paste. **FortiOS-safe names** (on by
   default) strips `( ) < > ' #` from object names — characters FortiOS
   refuses with "The string contains XSS vulnerability characters" — warning
-  with each rename; `0.0.0.0/32` objects are flagged as likely unconfigured
-  placeholders from the source export.
+  with each rename; rows that would make `0.0.0.0/32` objects — what
+  exports emit for unconfigured interfaces — are skipped by default with
+  one summary warning, or kept (each flagged) when **Skip 0.0.0.0/32
+  placeholders** is unticked.
 - **Webfilter Generator** — turn a domain list into static URL filter entries,
   emitting a complete `config webfilter urlfilter` list by default.
   Types are detected per entry by default (a domain containing `*` is a
