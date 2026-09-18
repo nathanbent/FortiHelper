@@ -285,7 +285,8 @@ describe('generateFromRecords with spreadsheet input', () => {
     // so the name is sanitized (with a warning carrying the mapping).
     expect(result.output).toContain('edit "Prefix-Web Server 192.0.2.85"');
     expect(result.output).toContain('set subnet 192.0.2.85 255.255.255.255');
-    expect(result.output).toContain('set subnet 0.0.0.0 255.255.255.255');
+    // 0.0.0.0/32 placeholder rows are dropped, with one summary warning.
+    expect(result.output).not.toContain('set subnet 0.0.0.0 255.255.255.255');
     // The Type column lands in the comment; the uuid column is ignored.
     expect(result.output).toContain('set comment "range"');
     expect(result.output).not.toContain('2cb8ede26e40');
@@ -296,15 +297,37 @@ describe('generateFromRecords with spreadsheet input', () => {
           "FortiOS rejects ( ) < > ' # in object names.",
       },
       {
-        line: 5,
         message:
-          "Warning: 'Prefix-Default Gateway' is 0.0.0.0/32 — likely an unconfigured " +
+          'Skipped 1 0.0.0.0/32 object(s) — unconfigured placeholders in the ' +
+          'source export: Prefix-Default Gateway',
+      },
+    ]);
+    expect(result.stats.total).toBe(3);
+    expect(result.stats.writtenIpRange).toBe(1);
+    expect(result.stats.writtenDirectIp).toBe(2);
+    expect(result.stats.skipped).toBe(1);
+  });
+
+  it('keeps 0.0.0.0/32 objects when skipPlaceholderIps is off, warning per row', () => {
+    const records = [
+      { lineno: 1, name: 'X14 IP', value: '0.0.0.0/255.255.255.255', comment: null },
+    ];
+    const result = generateFromRecords(records, {
+      useExplicitNames: true,
+      skipPlaceholderIps: false,
+      resolvedAt: RESOLVED_AT,
+    });
+    expect(result.output).toContain('edit "Prefix-X14 IP"');
+    expect(result.output).toContain('set subnet 0.0.0.0 255.255.255.255');
+    expect(result.warnings).toEqual([
+      {
+        line: 1,
+        message:
+          "Warning: 'Prefix-X14 IP' is 0.0.0.0/32 — likely an unconfigured " +
           'placeholder in the source export.',
       },
     ]);
-    expect(result.stats.total).toBe(4);
-    expect(result.stats.writtenIpRange).toBe(1);
-    expect(result.stats.writtenDirectIp).toBe(3);
+    expect(result.stats.writtenDirectIp).toBe(1);
   });
 
   it('keeps FortiOS-rejected characters when sanitizeNames is off (parity mode)', () => {

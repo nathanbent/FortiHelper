@@ -52,6 +52,14 @@ export interface ObjectHelperOptions {
    */
   sanitizeNames: boolean;
 
+  /**
+   * Drop rows that would generate a 0.0.0.0/32 object — what SonicWall
+   * exports emit for unconfigured interfaces — reporting one summary
+   * warning. Off keeps the objects, warning per row instead. Not part of
+   * the Python script.
+   */
+  skipPlaceholderIps: boolean;
+
   // --- Input format ---
   useExplicitNames: boolean;
   useInputComment: boolean;
@@ -126,6 +134,7 @@ export const DEFAULT_OPTIONS: ObjectHelperOptions = {
   colorId: 0,
 
   sanitizeNames: true,
+  skipPlaceholderIps: true,
 
   useExplicitNames: false,
   useInputComment: false,
