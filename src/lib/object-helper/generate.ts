@@ -27,9 +27,9 @@ function buildBaseName(ctx: Ctx, nameFromInput: string | null, fqdn: string): st
   // classic input formats always supply a string, so this only happens for
   // spreadsheet rows with an empty name cell.
   const raw = opts.useExplicitNames || opts.nameFqdnDelimiter ? (nameFromInput ?? fqdn) : fqdn;
-  const base = safeObjName(raw, ctx.warn);
+  const base = safeObjName(raw, ctx.warn, ctx.opts.sanitizeNames);
   if (opts.enablePrefix && opts.namePrefix) {
-    return safeObjName(`${opts.namePrefix}${opts.namePrefixDelim}${base}`, ctx.warn);
+    return safeObjName(`${opts.namePrefix}${opts.namePrefixDelim}${base}`, ctx.warn, ctx.opts.sanitizeNames);
   }
   return base;
 }
@@ -37,7 +37,7 @@ function buildBaseName(ctx: Ctx, nameFromInput: string | null, fqdn: string): st
 function applyPrefix(ctx: Ctx, objName: string): string {
   const { opts } = ctx;
   if (opts.enablePrefix && opts.namePrefix) {
-    return safeObjName(`${opts.namePrefix}${opts.namePrefixDelim}${objName}`, ctx.warn);
+    return safeObjName(`${opts.namePrefix}${opts.namePrefixDelim}${objName}`, ctx.warn, ctx.opts.sanitizeNames);
   }
   return objName;
 }
@@ -59,13 +59,13 @@ export function resolveGroupName(template: string, options: Partial<ObjectHelper
 function makeIpObjName(ctx: Ctx, baseName: string, ip: string, idx: number): string {
   const { opts } = ctx;
   if (opts.ipObjectsUseIndex) {
-    return safeObjName(`${baseName}${opts.ipObjectSuffix}${idx}`, ctx.warn);
+    return safeObjName(`${baseName}${opts.ipObjectSuffix}${idx}`, ctx.warn, ctx.opts.sanitizeNames);
   }
-  return safeObjName(`${baseName}-${ip.replace(/\./g, '_')}`, ctx.warn);
+  return safeObjName(`${baseName}-${ip.replace(/\./g, '_')}`, ctx.warn, ctx.opts.sanitizeNames);
 }
 
 function makePerFqdnGroupName(ctx: Ctx, baseName: string): string {
-  return safeObjName(`${baseName}${ctx.opts.perFqdnGroupSuffix}`, ctx.warn);
+  return safeObjName(`${baseName}${ctx.opts.perFqdnGroupSuffix}`, ctx.warn, ctx.opts.sanitizeNames);
 }
 
 // ---------- comment helpers ----------
@@ -195,7 +195,7 @@ function writeAddrgrpBlock(ctx: Ctx, groupName: string, members: string[]): void
   if (!members.length) return;
   const { opts, out } = ctx;
 
-  out.push(`edit "${safeObjName(groupName, ctx.warn)}"\n`);
+  out.push(`edit "${safeObjName(groupName, ctx.warn, ctx.opts.sanitizeNames)}"\n`);
 
   if (opts.enableGroupType && opts.groupType) out.push(`set type ${opts.groupType}\n`);
 
@@ -324,7 +324,7 @@ function generateCore(
         if (nameLine) rawName = nameLine;
         else if (network.prefixlen === 32) rawName = network.networkAddress;
         else rawName = `${network.networkAddress}${opts.ipCidrSeparator}${network.prefixlen}`;
-        const objName = applyPrefix(ctx, safeObjName(rawName, warn));
+        const objName = applyPrefix(ctx, safeObjName(rawName, warn, opts.sanitizeNames));
         if (createdObjectNames.has(objName)) {
           duplicates++;
           warn(`Duplicate object name skipped: '${objName}'`, lineno);
@@ -333,6 +333,15 @@ function generateCore(
           createdObjectNames.add(objName);
           createdObjects.push(objName);
           writtenDirectIp++;
+          // 0.0.0.0/32 is what exports emit for an unconfigured interface —
+          // FortiGate accepts it, but it almost never means anything.
+          if (network.prefixlen === 32 && network.networkAddress === '0.0.0.0') {
+            warn(
+              `Warning: '${objName}' is 0.0.0.0/32 — likely an unconfigured ` +
+                `placeholder in the source export.`,
+              lineno,
+            );
+          }
           if (opts.enablePerFqdnGroup) {
             perFqdnGroups.push([makePerFqdnGroupName(ctx, objName), [objName]]);
           }
@@ -344,7 +353,7 @@ function generateCore(
       const ipRange = tryParseIpRange(fqdnLine);
       if (ipRange !== null) {
         const rawName = nameLine ? nameLine : `${ipRange.start}-${ipRange.end}`;
-        const objName = applyPrefix(ctx, safeObjName(rawName, warn));
+        const objName = applyPrefix(ctx, safeObjName(rawName, warn, opts.sanitizeNames));
         if (createdObjectNames.has(objName)) {
           duplicates++;
           warn(`Duplicate object name skipped: '${objName}'`, lineno);

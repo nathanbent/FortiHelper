@@ -275,22 +275,48 @@ describe('generateFromRecords with spreadsheet input', () => {
     });
 
     expect(warnings).toEqual([]);
-    expect(result.warnings).toEqual([]);
     // Range with spaces around the dash -> iprange object.
     expect(result.output).toContain('edit "Prefix-*WLAN-CONTROLLERS"');
     expect(result.output).toContain('set type iprange\nset start-ip 10.99.0.20\nset end-ip 10.99.0.37');
     // Netmask notation -> subnet with the mask as given.
     expect(result.output).toContain('edit "Prefix-Mgmt Net"');
     expect(result.output).toContain('set subnet 10.52.128.0 255.255.255.0');
-    // /32 host in netmask notation; name keeps spaces and parentheses.
-    expect(result.output).toContain('edit "Prefix-Web Server (192.0.2.85)"');
+    // /32 host in netmask notation; FortiOS rejects parentheses in names,
+    // so the name is sanitized (with a warning carrying the mapping).
+    expect(result.output).toContain('edit "Prefix-Web Server 192.0.2.85"');
     expect(result.output).toContain('set subnet 192.0.2.85 255.255.255.255');
     expect(result.output).toContain('set subnet 0.0.0.0 255.255.255.255');
     // The Type column lands in the comment; the uuid column is ignored.
     expect(result.output).toContain('set comment "range"');
     expect(result.output).not.toContain('2cb8ede26e40');
+    expect(result.warnings).toEqual([
+      {
+        message:
+          "Warning: renamed 'Web Server (192.0.2.85)' to 'Web Server 192.0.2.85' — " +
+          "FortiOS rejects ( ) < > ' # in object names.",
+      },
+      {
+        line: 5,
+        message:
+          "Warning: 'Prefix-Default Gateway' is 0.0.0.0/32 — likely an unconfigured " +
+          'placeholder in the source export.',
+      },
+    ]);
     expect(result.stats.total).toBe(4);
     expect(result.stats.writtenIpRange).toBe(1);
     expect(result.stats.writtenDirectIp).toBe(3);
+  });
+
+  it('keeps FortiOS-rejected characters when sanitizeNames is off (parity mode)', () => {
+    const records = [
+      { lineno: 1, name: 'Web Server (192.0.2.85)', value: '192.0.2.85/255.255.255.255', comment: null },
+    ];
+    const result = generateFromRecords(records, {
+      useExplicitNames: true,
+      sanitizeNames: false,
+      resolvedAt: RESOLVED_AT,
+    });
+    expect(result.output).toContain('edit "Prefix-Web Server (192.0.2.85)"');
+    expect(result.warnings).toEqual([]);
   });
 });

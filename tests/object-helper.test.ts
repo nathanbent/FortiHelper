@@ -323,6 +323,27 @@ describe('safeObjName', () => {
       `Warning: object name exceeds 79 chars and will be rejected by FortiGate: '${long}'`,
     ]);
   });
+
+  it('drops FortiOS-rejected characters when fortiosSafe is on, with a warning', () => {
+    const warnings: string[] = [];
+    const result = safeObjName('Web Server (192.0.2.85)', (m) => warnings.push(m), true);
+    expect(result).toBe('Web Server 192.0.2.85');
+    expect(warnings).toEqual([
+      "Warning: renamed 'Web Server (192.0.2.85)' to 'Web Server 192.0.2.85' — " +
+        "FortiOS rejects ( ) < > ' # in object names.",
+    ]);
+    expect(safeObjName("a <b> 'c' #d", () => {}, true)).toBe('a b c d');
+  });
+
+  it('keeps those characters without fortiosSafe (Python parity)', () => {
+    const warnings: string[] = [];
+    expect(safeObjName('a (b)', (m) => warnings.push(m))).toBe('a (b)');
+    expect(warnings).toHaveLength(0);
+  });
+
+  it('throws when sanitizing leaves nothing', () => {
+    expect(() => safeObjName('()', () => {}, true)).toThrow('empty object name');
+  });
 });
 
 describe('resolveGroupName', () => {
