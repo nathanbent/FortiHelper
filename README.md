@@ -25,7 +25,19 @@ carries the same split as hairline-separated groups.
   with each rename; rows that would make `0.0.0.0/32` objects — what
   exports emit for unconfigured interfaces — are skipped by default with
   one summary warning, or kept (each flagged) when **Skip 0.0.0.0/32
-  placeholders** is unticked.
+  placeholders** is unticked. Opt-in **Normalization** fixes clean pasted
+  URLs (`https://host/path`, `host:port`, defanged `hxxp` / `[.]`) down to
+  the bare host, swap rows entered address-first, shorten names over the
+  79-character limit (keeping `-IP-1` / `-Group` suffixes and whole
+  hostname labels where possible), and rename a name reused for a
+  different address to `name-2`, `name-3`, …. Each fix that is off but
+  would help is offered under **Suggested fixes** below the input, along
+  with a better-fitting input mode when the paste plainly has another shape
+  (`name: address` lines in one-per-line mode, alternating name / address
+  lines, address-first layouts). What the tool corrected is listed under a
+  collapsed **Auto-corrected** section rather than as warnings, and exact
+  repeats of an entry are noted there too. The example text in the input
+  box follows the selected input mode.
 - **Webfilter Generator** — turn a domain list into static URL filter entries,
   emitting a complete `config webfilter urlfilter` list by default.
   Types are detected per entry by default (a domain containing `*` is a

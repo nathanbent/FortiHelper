@@ -44,3 +44,18 @@ export {
   spreadsheetRecords,
 } from './spreadsheet';
 export type { SpreadsheetMapping, SpreadsheetTable } from './spreadsheet';
+export {
+  cleanAddress,
+  emptyIssues,
+  fitName,
+  isAddressLike,
+  normalizeRecords,
+  recommendInputModes,
+  uniqueName,
+} from './normalize';
+export type {
+  InputFormat,
+  InputMode,
+  ModeRecommendation,
+  NormalizeIssues,
+} from './normalize';
