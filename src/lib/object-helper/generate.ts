@@ -496,7 +496,10 @@ function generateCore(
     } catch (e) {
       skipped++;
       const who = nameLine !== null ? `name='${nameLine}' ` : '';
-      const msg = e instanceof Error ? e.message : String(e);
+      let msg = e instanceof Error ? e.message : String(e);
+      if (!opts.normalizeAddresses && msg.includes('looks like a URL')) {
+        msg += ' — or turn on "Clean up URLs"';
+      }
       warn(`Skipped ${who}fqdn='${fqdnLine}': ${msg}`, lineno);
     }
   }

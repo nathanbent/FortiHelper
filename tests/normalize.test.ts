@@ -214,4 +214,37 @@ describe('recommendInputModes', () => {
     const [rec] = recommendInputModes('web\texample.com\ndb\t10.0.0.5', PLAIN);
     expect(rec.mode).toBe('spreadsheet');
   });
+
+  it('suggests one-per-line when a URL list is read as pairs', () => {
+    const text = [
+      'https://drc-centraloffice.com',
+      'https://drc-wbte-prod.s3.amazonaws.com',
+      'https://te.drcedirect.com/wida',
+      'https://www.wida-ams.us',
+    ].join('\n');
+    const recs = recommendInputModes(text, { mode: 'pairs', delimiter: ':', useInputComment: false });
+    // Only one reading: the alternate lines are not comments either.
+    expect(recs).toHaveLength(1);
+    expect(recs[0]).toMatchObject({ mode: 'plain', useInputComment: false, swap: false });
+  });
+
+  it('keeps hostname names of IPs as a valid pairs layout', () => {
+    const text = 'web.example.com\n10.0.0.1\ndb.example.com\n10.0.0.2';
+    expect(
+      recommendInputModes(text, { mode: 'pairs', delimiter: ':', useInputComment: false }),
+    ).toEqual([]);
+  });
+});
+
+describe('URL names', () => {
+  it('cleans a URL used as a name and hints at the fix while off', () => {
+    const text = 'https://a.example.com\nhttps://b.example.com/x\n';
+    const off = generateObjects(text, { useExplicitNames: true });
+    expect(off.issues.urlLike).toBe(2);
+    expect(off.warnings[0].message).toContain('turn on "Clean up URLs"');
+
+    const on = generateObjects(text, { useExplicitNames: true, normalizeAddresses: true });
+    expect(on.output).toContain('edit "Prefix-a.example.com"');
+    expect(on.output).toContain('set fqdn "b.example.com"');
+  });
 });
