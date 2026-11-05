@@ -333,6 +333,54 @@ pre.output {
 
 .warnings ul { margin: 0.25rem 0 0; padding-left: 1.2rem; }
 
+/* Notes about input the tool corrected on its own (kind: 'fix'). */
+details.fixes {
+  margin-top: 0.6rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--ok);
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+details.fixes summary { cursor: pointer; color: var(--text); }
+details.fixes ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+
+/* Suggested input fixes (Object Helper), shown under the input box. */
+.suggestions {
+  margin-top: 0.6rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.suggestions > strong { display: block; margin-bottom: 0.35rem; }
+
+.suggestion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.3rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.suggestion:first-of-type { border-top: none; }
+.suggestion .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; flex-shrink: 0; }
+.suggestions .btn-row { margin-top: 0.4rem; }
+
+.subhead {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0.9rem 0 0.3rem;
+}
+
 .copied { color: var(--ok); font-size: 0.85rem; }
 
 .shell-footer {

@@ -369,7 +369,13 @@ describe('duplicate suppression', () => {
     expect(stats.total).toBe(2);
     expect((output.match(/edit "Prefix-example\.com"/g) ?? []).length).toBe(1);
     expect(warnings.filter((w) => w.message.includes('Duplicate object name'))).toHaveLength(2);
-    expect(warnings.find((w) => w.message === "Duplicate object name skipped: 'Prefix-example.com'")?.line).toBe(2);
+    const dup = warnings.find((w) =>
+      w.message.startsWith("Duplicate object name skipped: 'Prefix-example.com'"),
+    );
+    expect(dup?.line).toBe(2);
+    // An exact repeat loses nothing, so it is a note rather than a warning.
+    expect(dup?.kind).toBe('fix');
+    expect(dup?.message).toContain('same address as line 1');
   });
 
   it('suppresses a direct IP colliding with an explicit name', () => {

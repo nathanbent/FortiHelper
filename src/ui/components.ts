@@ -163,10 +163,14 @@ export function outputPane(downloadName: string): OutputPane {
   const stats = el('div', 'stats', '');
   const warnBox = el('div', 'warnings');
   warnBox.style.display = 'none';
+  // Notes about things the tool corrected itself — collapsed, since the
+  // output is already right and they are only there to be checked.
+  const fixBox = el('details', 'fixes');
+  fixBox.hidden = true;
 
   const outputWrap = el('div', 'output-wrap');
   outputWrap.append(pre, empty);
-  root.append(btnRow, outputWrap, stats, warnBox);
+  root.append(btnRow, outputWrap, stats, warnBox, fixBox);
 
   copyBtn.addEventListener('click', async () => {
     await navigator.clipboard.writeText(pre.textContent ?? '');
@@ -197,16 +201,27 @@ export function outputPane(downloadName: string): OutputPane {
       // All-zero counts next to "nothing generated yet" is just noise.
       stats.textContent = statsLine;
       setShown(stats, !isEmpty && statsLine !== '');
-      if (warnings.length) {
+      const line = (w: Warning): string =>
+        w.line !== undefined ? `Line ${w.line}: ${w.message}` : w.message;
+      const problems = warnings.filter((w) => w.kind !== 'fix');
+      // Sorted by line so a fix reads next to its neighbours in the input.
+      const fixes = warnings
+        .filter((w) => w.kind === 'fix')
+        .sort((a, b) => (a.line ?? Infinity) - (b.line ?? Infinity));
+      if (problems.length) {
         warnBox.style.display = '';
-        warnBox.replaceChildren(el('strong', undefined, `Warnings (${warnings.length})`));
+        warnBox.replaceChildren(el('strong', undefined, `Warnings (${problems.length})`));
         const ul = el('ul');
-        for (const w of warnings) {
-          ul.append(el('li', undefined, w.line !== undefined ? `Line ${w.line}: ${w.message}` : w.message));
-        }
+        for (const w of problems) ul.append(el('li', undefined, line(w)));
         warnBox.append(ul);
       } else {
         warnBox.style.display = 'none';
+      }
+      setShown(fixBox, fixes.length > 0);
+      if (fixes.length) {
+        const ul = el('ul');
+        for (const w of fixes) ul.append(el('li', undefined, line(w)));
+        fixBox.replaceChildren(el('summary', undefined, `Auto-corrected (${fixes.length})`), ul);
       }
     },
   };

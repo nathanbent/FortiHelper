@@ -3,15 +3,17 @@ import type { ObjectHelperOptions } from './types';
 import { MAX_OBJ_NAME_LEN } from './types';
 
 /** Sink for non-fatal messages (the Python script's stderr prints). */
-export type WarnSink = (message: string, line?: number) => void;
+export type WarnSink = (message: string, line?: number, kind?: 'fix') => void;
 
 /** Collects warnings into an array, matching the Warning interface. */
 export function makeWarningCollector(): { warnings: Warning[]; warn: WarnSink } {
   const warnings: Warning[] = [];
   return {
     warnings,
-    warn(message, line) {
-      warnings.push(line !== undefined ? { line, message } : { message });
+    warn(message, line, kind) {
+      const w: Warning = line !== undefined ? { line, message } : { message };
+      if (kind) w.kind = kind;
+      warnings.push(w);
     },
   };
 }
@@ -237,8 +239,15 @@ const FORTIOS_UNSAFE_NAME_CHARS = /[()<>'#]/g;
  * result exceeds the FortiGate name length limit. With `fortiosSafe` the
  * characters FortiOS rejects in names are dropped too, warning per rename —
  * an addition over the Python script, gated so it can be switched off.
+ * `checkLength` false skips the length warning, for callers that shorten
+ * the name afterwards.
  */
-export function safeObjName(name: string, warn: WarnSink, fortiosSafe = false): string {
+export function safeObjName(
+  name: string,
+  warn: WarnSink,
+  fortiosSafe = false,
+  checkLength = true,
+): string {
   let n = name.replace(/"/g, '').replace(/\n/g, ' ').trim();
   n = n.replace(/\s+/g, ' ');
   if (fortiosSafe) {
@@ -251,7 +260,7 @@ export function safeObjName(name: string, warn: WarnSink, fortiosSafe = false): 
     }
   }
   if (!n) throw new Error('empty object name');
-  if (n.length > MAX_OBJ_NAME_LEN) {
+  if (checkLength && n.length > MAX_OBJ_NAME_LEN) {
     warn(
       `Warning: object name exceeds ${MAX_OBJ_NAME_LEN} chars and will be ` +
         `rejected by FortiGate: '${n}'`,

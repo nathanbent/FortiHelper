@@ -1,4 +1,5 @@
 import type { Warning } from '../../types';
+import type { NormalizeIssues } from './normalize';
 
 /** FortiGate address object name hard limit. */
 export const MAX_OBJ_NAME_LEN = 79;
@@ -59,6 +60,26 @@ export interface ObjectHelperOptions {
    * the Python script.
    */
   skipPlaceholderIps: boolean;
+
+  // --- Input normalization (none of these are in the Python script) ---
+  /**
+   * Reduce URL-like values to the bare host: scheme, path, query, port,
+   * credentials, trailing dots, and defanging (`[.]`, `hxxp`) are removed.
+   * Only applied when the cleaned value is a valid address.
+   */
+  normalizeAddresses: boolean;
+  /**
+   * In the named input modes, swap a row's name and address when the name
+   * is the address and the value is not — input entered address-first.
+   */
+  fixSwappedPairs: boolean;
+  /** Trim object names over the FortiGate 79-character limit. */
+  shortenLongNames: boolean;
+  /**
+   * When a name is already used by a *different* address, add -2, -3, …
+   * instead of skipping the row. Exact repeats are always skipped.
+   */
+  renameDuplicateNames: boolean;
 
   // --- Input format ---
   useExplicitNames: boolean;
@@ -136,6 +157,11 @@ export const DEFAULT_OPTIONS: ObjectHelperOptions = {
   sanitizeNames: true,
   skipPlaceholderIps: true,
 
+  normalizeAddresses: false,
+  fixSwappedPairs: false,
+  shortenLongNames: false,
+  renameDuplicateNames: false,
+
   useExplicitNames: false,
   useInputComment: false,
   nameFqdnDelimiter: '',
@@ -194,6 +220,8 @@ export interface GenerateResult {
   output: string;
   warnings: Warning[];
   stats: ObjectHelperStats;
+  /** Input problems an off normalization fix would have corrected. */
+  issues: NormalizeIssues;
 }
 
 /** Current UTC time formatted like the Python RESOLVED_AT ("YYYY-MM-DD HH:MM:SSZ"). */

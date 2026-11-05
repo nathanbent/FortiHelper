@@ -21,4 +21,10 @@ export interface Warning {
   /** 1-based input line number when applicable. */
   line?: number;
   message: string;
+  /**
+   * 'fix' marks a note about something the tool corrected on its own
+   * (a cleaned-up URL, a shortened name) rather than a problem left in
+   * the output. Absent for ordinary warnings.
+   */
+  kind?: 'fix';
 }

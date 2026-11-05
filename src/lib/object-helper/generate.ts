@@ -1,5 +1,7 @@
 import type { DnsResults, GenerateResult, ObjectHelperOptions } from './types';
-import { defaultResolvedAt, withDefaults } from './types';
+import { MAX_OBJ_NAME_LEN, defaultResolvedAt, withDefaults } from './types';
+import type { NormalizeIssues } from './normalize';
+import { emptyIssues, fitName, normalizeRecords, uniqueName } from './normalize';
 import type { IPv4Network, IPv4Range } from './ipv4';
 import { tryParseIpNetwork, tryParseIpRange } from './ipv4';
 import type { InputRecord, WarnSink } from './parse';
@@ -17,9 +19,15 @@ interface Ctx {
   resolvedAt: string;
   warn: WarnSink;
   out: string[];
+  issues: NormalizeIssues;
 }
 
 // ---------- naming helpers (mirror the Python helpers) ----------
+
+/** safeObjName with the context's options; no length warning when names get shortened. */
+function safe(ctx: Ctx, name: string): string {
+  return safeObjName(name, ctx.warn, ctx.opts.sanitizeNames, !ctx.opts.shortenLongNames);
+}
 
 function buildBaseName(ctx: Ctx, nameFromInput: string | null, fqdn: string): string {
   const { opts } = ctx;
@@ -27,17 +35,13 @@ function buildBaseName(ctx: Ctx, nameFromInput: string | null, fqdn: string): st
   // classic input formats always supply a string, so this only happens for
   // spreadsheet rows with an empty name cell.
   const raw = opts.useExplicitNames || opts.nameFqdnDelimiter ? (nameFromInput ?? fqdn) : fqdn;
-  const base = safeObjName(raw, ctx.warn, ctx.opts.sanitizeNames);
-  if (opts.enablePrefix && opts.namePrefix) {
-    return safeObjName(`${opts.namePrefix}${opts.namePrefixDelim}${base}`, ctx.warn, ctx.opts.sanitizeNames);
-  }
-  return base;
+  return applyPrefix(ctx, safe(ctx, raw));
 }
 
 function applyPrefix(ctx: Ctx, objName: string): string {
   const { opts } = ctx;
   if (opts.enablePrefix && opts.namePrefix) {
-    return safeObjName(`${opts.namePrefix}${opts.namePrefixDelim}${objName}`, ctx.warn, ctx.opts.sanitizeNames);
+    return safe(ctx, `${opts.namePrefix}${opts.namePrefixDelim}${objName}`);
   }
   return objName;
 }
@@ -56,16 +60,36 @@ export function resolveGroupName(template: string, options: Partial<ObjectHelper
   return template;
 }
 
-function makeIpObjName(ctx: Ctx, baseName: string, ip: string, idx: number): string {
+/** What a resolved-IP object's name adds to its FQDN object's base name. */
+function ipObjTail(ctx: Ctx, ip: string, idx: number): string {
   const { opts } = ctx;
-  if (opts.ipObjectsUseIndex) {
-    return safeObjName(`${baseName}${opts.ipObjectSuffix}${idx}`, ctx.warn, ctx.opts.sanitizeNames);
-  }
-  return safeObjName(`${baseName}-${ip.replace(/\./g, '_')}`, ctx.warn, ctx.opts.sanitizeNames);
+  if (opts.ipObjectsUseIndex) return `${opts.ipObjectSuffix}${idx}`;
+  return `-${ip.replace(/\./g, '_')}`;
 }
 
-function makePerFqdnGroupName(ctx: Ctx, baseName: string): string {
-  return safeObjName(`${baseName}${ctx.opts.perFqdnGroupSuffix}`, ctx.warn, ctx.opts.sanitizeNames);
+/**
+ * The sanitized name `head + tail`. Over the FortiGate limit it is either
+ * shortened (keeping the tail, so `-IP-1` / `-Group` survive) or, with
+ * shortening off, counted as an issue — safeObjName has already warned.
+ */
+function finalName(ctx: Ctx, head: string, tail = ''): { name: string; full: string } {
+  const full = safe(ctx, head + tail);
+  if (full.length <= MAX_OBJ_NAME_LEN) return { name: full, full };
+  if (!ctx.opts.shortenLongNames) {
+    ctx.issues.longNames++;
+    return { name: full, full };
+  }
+  const keepTail = tail !== '' && full.endsWith(tail);
+  const name = keepTail ? fitName(full.slice(0, -tail.length), tail) : fitName(full);
+  return { name, full };
+}
+
+function makePerFqdnGroupName(ctx: Ctx, lineno: number, baseName: string): string {
+  const { name, full } = finalName(ctx, baseName, ctx.opts.perFqdnGroupSuffix);
+  if (name !== full) {
+    ctx.warn(`Shortened group name '${full}' to '${name}' (FortiGate limit is 79 characters)`, lineno, 'fix');
+  }
+  return name;
 }
 
 // ---------- comment helpers ----------
@@ -241,7 +265,7 @@ export function collectFqdnsFromRecords(
 ): string[] {
   const opts = withDefaults(options);
   const fqdns = new Set<string>();
-  for (const record of records) {
+  for (const record of normalizeRecords(records, opts, () => {})) {
     try {
       if (tryParseIpNetwork(record.value)) continue;
       if (tryParseIpRange(record.value)) continue;
@@ -298,7 +322,9 @@ function generateCore(
 ): GenerateResult {
   const resolvedAt = opts.resolvedAt ?? defaultResolvedAt();
   const out: string[] = [];
-  const ctx: Ctx = { opts, resolvedAt, warn, out };
+  const issues = emptyIssues();
+  const ctx: Ctx = { opts, resolvedAt, warn, out, issues };
+  records = normalizeRecords(records, opts, warn, issues);
 
   let writtenFqdn = 0;
   let writtenIp = 0;
@@ -309,7 +335,58 @@ function generateCore(
   let dnsFailures = 0;
 
   const createdObjects: string[] = [];
-  const createdObjectNames = new Set<string>();
+  /** Object name -> what it holds and the line that created it. */
+  const createdObjectNames = new Map<string, { sig: string; line: number }>();
+
+  /**
+   * Final, unique name for a new object, or null when the row is skipped.
+   * `sig` identifies the address: a name reused for the same address is a
+   * plain duplicate, one reused for a different address is a conflict —
+   * renamed with renameDuplicateNames (or when shortening caused it),
+   * otherwise skipped with a warning.
+   */
+  const claim = (head: string, tail: string, sig: string, lineno: number): string | null => {
+    const { name: fitted, full } = finalName(ctx, head, tail);
+    const shortened = fitted !== full;
+    let name = fitted;
+    const existing = createdObjectNames.get(name);
+    if (existing) {
+      if (existing.sig === sig) {
+        duplicates++;
+        warn(
+          `Duplicate object name skipped: '${name}' — same address as line ${existing.line}`,
+          lineno,
+          'fix',
+        );
+        return null;
+      }
+      if (!shortened && !opts.renameDuplicateNames) {
+        duplicates++;
+        issues.nameConflicts++;
+        warn(
+          `Duplicate object name skipped: '${name}' — line ${existing.line} already uses it ` +
+            'for a different address',
+          lineno,
+        );
+        return null;
+      }
+      name = uniqueName(name, (n) => createdObjectNames.has(n));
+      if (!shortened) {
+        warn(
+          `Renamed '${fitted}' to '${name}' — line ${existing.line} already uses that name ` +
+            'for a different address',
+          lineno,
+          'fix',
+        );
+      }
+    }
+    if (shortened) {
+      warn(`Shortened '${full}' to '${name}' (FortiGate limit is 79 characters)`, lineno, 'fix');
+    }
+    createdObjectNames.set(name, { sig, line: lineno });
+    createdObjects.push(name);
+    return name;
+  };
   const perFqdnGroups: [string, string[]][] = [];
   const placeholdersSkipped: string[] = [];
 
@@ -325,20 +402,19 @@ function generateCore(
         if (nameLine) rawName = nameLine;
         else if (network.prefixlen === 32) rawName = network.networkAddress;
         else rawName = `${network.networkAddress}${opts.ipCidrSeparator}${network.prefixlen}`;
-        const objName = applyPrefix(ctx, safeObjName(rawName, warn, opts.sanitizeNames));
+        const baseObjName = applyPrefix(ctx, safe(ctx, rawName));
         // 0.0.0.0/32 is what exports emit for an unconfigured interface —
         // FortiGate accepts it, but it almost never means anything.
         const isPlaceholder = network.prefixlen === 32 && network.networkAddress === '0.0.0.0';
         if (isPlaceholder && opts.skipPlaceholderIps) {
           skipped++;
-          placeholdersSkipped.push(objName);
-        } else if (createdObjectNames.has(objName)) {
-          duplicates++;
-          warn(`Duplicate object name skipped: '${objName}'`, lineno);
-        } else {
+          placeholdersSkipped.push(baseObjName);
+          continue;
+        }
+        const sig = `net:${network.networkAddress}/${network.netmask}`;
+        const objName = claim(baseObjName, '', sig, lineno);
+        if (objName !== null) {
           writeDirectIpObject(ctx, objName, network, inputComment);
-          createdObjectNames.add(objName);
-          createdObjects.push(objName);
           writtenDirectIp++;
           if (isPlaceholder) {
             warn(
@@ -348,7 +424,7 @@ function generateCore(
             );
           }
           if (opts.enablePerFqdnGroup) {
-            perFqdnGroups.push([makePerFqdnGroupName(ctx, objName), [objName]]);
+            perFqdnGroups.push([makePerFqdnGroupName(ctx, lineno, objName), [objName]]);
           }
         }
         continue;
@@ -358,17 +434,13 @@ function generateCore(
       const ipRange = tryParseIpRange(fqdnLine);
       if (ipRange !== null) {
         const rawName = nameLine ? nameLine : `${ipRange.start}-${ipRange.end}`;
-        const objName = applyPrefix(ctx, safeObjName(rawName, warn, opts.sanitizeNames));
-        if (createdObjectNames.has(objName)) {
-          duplicates++;
-          warn(`Duplicate object name skipped: '${objName}'`, lineno);
-        } else {
+        const sig = `range:${ipRange.start}-${ipRange.end}`;
+        const objName = claim(applyPrefix(ctx, safe(ctx, rawName)), '', sig, lineno);
+        if (objName !== null) {
           writeIpRangeObject(ctx, objName, ipRange, inputComment);
-          createdObjectNames.add(objName);
-          createdObjects.push(objName);
           writtenIpRange++;
           if (opts.enablePerFqdnGroup) {
-            perFqdnGroups.push([makePerFqdnGroupName(ctx, objName), [objName]]);
+            perFqdnGroups.push([makePerFqdnGroupName(ctx, lineno, objName), [objName]]);
           }
         }
         continue;
@@ -380,14 +452,10 @@ function generateCore(
       const thisRecordMembers: string[] = [];
 
       if (opts.outputFqdnObjects) {
-        if (createdObjectNames.has(baseName)) {
-          duplicates++;
-          warn(`Duplicate object name skipped: '${baseName}'`, lineno);
-        } else {
-          writeFqdnObject(ctx, baseName, fqdn, inputComment);
-          createdObjectNames.add(baseName);
-          createdObjects.push(baseName);
-          thisRecordMembers.push(baseName);
+        const objName = claim(baseName, '', `fqdn:${fqdn}`, lineno);
+        if (objName !== null) {
+          writeFqdnObject(ctx, objName, fqdn, inputComment);
+          thisRecordMembers.push(objName);
           writtenFqdn++;
         }
       }
@@ -413,15 +481,9 @@ function generateCore(
 
           ips.forEach((ip, i) => {
             const idx = i + 1;
-            const ipObjName = makeIpObjName(ctx, baseName, ip, idx);
-            if (createdObjectNames.has(ipObjName)) {
-              duplicates++;
-              warn(`Duplicate object name skipped: '${ipObjName}'`, lineno);
-              return;
-            }
+            const ipObjName = claim(baseName, ipObjTail(ctx, ip, idx), `ip:${ip}`, lineno);
+            if (ipObjName === null) return;
             writeIpObject(ctx, ipObjName, fqdn, ip, inputComment);
-            createdObjectNames.add(ipObjName);
-            createdObjects.push(ipObjName);
             thisRecordMembers.push(ipObjName);
             writtenIp++;
           });
@@ -429,7 +491,7 @@ function generateCore(
       }
 
       if (opts.enablePerFqdnGroup && thisRecordMembers.length) {
-        perFqdnGroups.push([makePerFqdnGroupName(ctx, baseName), thisRecordMembers]);
+        perFqdnGroups.push([makePerFqdnGroupName(ctx, lineno, baseName), thisRecordMembers]);
       }
     } catch (e) {
       skipped++;
@@ -482,5 +544,6 @@ function generateCore(
       total: createdObjects.length,
       resolvedAt,
     },
+    issues,
   };
 }
