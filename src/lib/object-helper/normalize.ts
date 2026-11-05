@@ -100,6 +100,20 @@ export function normalizeRecords(
       }
     }
 
+    // A URL in the name slot (an address list read as pairs) would put
+    // "https://" into the object name — reduce it to the host as well.
+    if (name !== null && /^[a-z][a-z0-9+.-]*:\/\//i.test(name.trim()) && !isAddressLike(name, opts)) {
+      const cleaned = cleanAddress(name);
+      if (isAddressLike(cleaned, opts)) {
+        if (opts.normalizeAddresses) {
+          warn(`Cleaned up name '${name.trim()}' to '${cleaned}'`, record.lineno, 'fix');
+          name = cleaned;
+        } else {
+          issues.urlLike++;
+        }
+      }
+    }
+
     if (!isAddressLike(value, opts)) {
       const cleaned = cleanAddress(value);
       if (cleaned !== value.trim() && isAddressLike(cleaned, opts)) {
@@ -198,8 +212,16 @@ function evaluateRecords(
   let good = 0;
   let swaps = 0;
   for (const r of records) {
-    if (looseAddress(r.value, opts)) good++;
-    else if (r.name !== null && r.name.trim() && looseAddress(r.name, opts)) {
+    if (looseAddress(r.value, opts)) {
+      // A name that is itself an IP or a URL means an address list is
+      // being read as pairs — that row is misread, not good. (A plain
+      // hostname as the name of an IP is a normal naming choice.)
+      // Likewise a "comment" that is just another address.
+      const misread =
+        (r.name !== null && addressShapedName(r.name, opts)) ||
+        (r.comment !== null && looseAddress(r.comment, opts));
+      if (!misread) good++;
+    } else if (r.name !== null && r.name.trim() && looseAddress(r.name, opts)) {
       good++;
       swaps++;
     }
@@ -209,6 +231,13 @@ function evaluateRecords(
     swaps,
     records: records.length,
   };
+}
+
+/** An IP, CIDR, range, or URL — never a deliberate object name. */
+function addressShapedName(name: string, opts: { lowercaseFqdn: boolean }): boolean {
+  const n = name.trim();
+  if (tryParseIpNetwork(n) !== null || tryParseIpRange(n) !== null) return true;
+  return !isAddressLike(n, opts) && isAddressLike(cleanAddress(n), opts);
 }
 
 function evaluateFormat(
