@@ -11,6 +11,7 @@ import {
   readDevices,
   readXlsx,
   rowsToTsv,
+  templateCsv,
 } from '../src/lib/device-onboarding';
 import type { Device } from '../src/lib/device-onboarding';
 
@@ -141,6 +142,27 @@ describe('reading the device list', () => {
     const { devices, warnings } = load('serial,name\nS248EPTF00000001,SW (main) #1');
     expect(devices[0].name).toBe('SW main 1');
     expect(warnings[0].kind).toBe('fix');
+  });
+
+  it('offers a CSV template that loads cleanly', () => {
+    const table = parseDeviceTable(templateCsv());
+    const cols = detectDeviceColumns(table);
+    expect(cols).toEqual({
+      hasHeader: true,
+      serial: 0,
+      name: 1,
+      comment: 2,
+      cloudKey: 3,
+      kind: 4,
+      group: 5,
+      profile: 6,
+    });
+    const { devices, warnings } = readDevices(table, cols);
+    expect(warnings).toEqual([]);
+    expect(devices.map((d) => [d.kind, d.name])).toEqual([
+      ['switch', 'IDF1-SW1'],
+      ['ap', 'AP-Lobby'],
+    ]);
   });
 
   it('classifies serials by prefix', () => {
