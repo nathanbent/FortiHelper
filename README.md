@@ -65,7 +65,8 @@ carries the same split as hairline-separated groups.
   `config wireless-controller wtp` entries, plus `switch-group` /
   `wtp-group` membership. The list can be a loaded **CSV or .xlsx file**
   (read in the browser — no upload, no dependency), a paste from Excel, or
-  rows **added by hand**. Columns — serial number, name, comments,
+  rows **added by hand**; **Download CSV template** gives a starter file
+  with every column and two example rows. Columns — serial number, name, comments,
   FortiCloud key, and optionally Type, Group, and Profile — are found from
   the header row, or from which column looks like serials, and can be
   re-mapped. Switch or AP is read from the serial's prefix. Options cover

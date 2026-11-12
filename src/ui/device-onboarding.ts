@@ -12,6 +12,7 @@ import {
   readDevices,
   readXlsx,
   rowsToTsv,
+  templateCsv,
 } from '../lib/device-onboarding';
 import type {
   AuthAction,
@@ -129,9 +130,14 @@ export const deviceOnboardingTool: Tool = {
     fileInput.type = 'file';
     fileInput.accept = '.csv,.tsv,.txt,.xlsx,text/csv,text/plain';
     fileInput.style.display = 'none';
+    const templateBtn = el('button', 'btn', 'Download CSV template');
+    templateBtn.title = 'A starter file with every column and two example rows';
+    templateBtn.addEventListener('click', () =>
+      download('switch-ap-template.csv', templateCsv(), 'text/csv'),
+    );
     const clearBtn = el('button', 'btn', 'Clear');
     const fileNote = el('span', 'hint');
-    fileRow.append(fileBtn, fileInput, clearBtn, fileNote);
+    fileRow.append(fileBtn, fileInput, templateBtn, clearBtn, fileNote);
 
     const sheetField = el('div', 'field');
     sheetField.append(el('label', undefined, 'Worksheet'));

@@ -359,3 +359,19 @@ export function readDevices(
 
   return { devices, warnings, skipped };
 }
+
+/**
+ * A starter CSV: every column the tool reads, with two example rows that
+ * show the shape. Only the serial number is required — the rest can be
+ * left blank or the column deleted. Type is read from the serial when
+ * blank; Group and Profile override the tool's options for that row.
+ */
+export function templateCsv(): string {
+  return (
+    [
+      'Serial Number,Name,Comments,FortiCloud Key,Type,Group,Profile',
+      'S248EPTF00000001,IDF1-SW1,First floor IDF,ABCD-1234,FortiSwitch,,',
+      'FP231FTF00000002,AP-Lobby,Lobby ceiling,EFGH-5678,FortiAP,,',
+    ].join('\r\n') + '\r\n'
+  );
+}
