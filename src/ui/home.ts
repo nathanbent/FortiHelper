@@ -26,6 +26,11 @@ const GROUPS: { title: string; blurb: string; tools: { id: string; name: string;
         name: 'Content Filter',
         what: 'A banned-word list into a scored web content filter.',
       },
+      {
+        id: 'onboarding',
+        name: 'Switch & AP Onboarding',
+        what: 'A CSV, XLSX, or pasted list of FortiSwitch and FortiAP serials into batched config that names, groups, and approves them.',
+      },
     ],
   },
   {

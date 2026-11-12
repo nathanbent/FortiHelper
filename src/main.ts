@@ -8,6 +8,7 @@ import { quickstartTool } from './ui/quickstart-tool';
 import { webfilterTool } from './ui/webfilter';
 import { webfilterContentTool } from './ui/webfilter-content';
 import { fortiEditTool } from './ui/forti-edit';
+import { deviceOnboardingTool } from './ui/device-onboarding';
 import { referenceTool } from './ui/reference';
 
 // Nav order: home, then the generators in the order you would reach for
@@ -17,6 +18,7 @@ const tools: Tool[] = [
   objectHelperTool,
   webfilterTool,
   webfilterContentTool,
+  deviceOnboardingTool,
   fortiEditTool,
   referenceTool,
   quickstartTool,
@@ -45,7 +47,7 @@ app.append(header, main, footer);
 
 // A hairline after these tabs splits the bar into:
 // home | build | work with | templates.
-const NAV_BREAKS = new Set(['home', 'content-filter', 'reference']);
+const NAV_BREAKS = new Set(['home', 'onboarding', 'reference']);
 
 const links = new Map<string, HTMLAnchorElement>();
 for (const tool of tools) {

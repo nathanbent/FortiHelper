@@ -59,6 +59,25 @@ carries the same split as hairline-separated groups.
   and `block` / `exempt` actions, optionally followed by the
   `config webfilter profile` block that binds it via `set bword-table` and
   `set bword-threshold`. Reports how many matches it takes to block a page.
+- **Switch & AP Onboarding** — turn a list of FortiSwitch and FortiAP serial
+  numbers into the config that names, groups, and approves them:
+  `config switch-controller managed-switch` and
+  `config wireless-controller wtp` entries, plus `switch-group` /
+  `wtp-group` membership. The list can be a loaded **CSV or .xlsx file**
+  (read in the browser — no upload, no dependency), a paste from Excel, or
+  rows **added by hand**. Columns — serial number, name, comments,
+  FortiCloud key, and optionally Type, Group, and Profile — are found from
+  the header row, or from which column looks like serials, and can be
+  re-mapped. Switch or AP is read from the serial's prefix. Options cover
+  approve / reject / back to discovered, the FortiLink interface, switch and
+  AP groups, and the FortiAP profile (`FAP{model}-default` gives each AP its
+  model's default). Comments become the switch `description` and the AP
+  `location`. Output is cut into **batches** (50 devices by default), each a
+  complete block with its own Copy button that stays ticked once copied;
+  group members are added with `append`, so pasting batch 2 does not undo
+  batch 1. The FortiCloud key is tracked rather than configured: it shows in
+  the device table and in the **inventory CSV** export (with each device's
+  batch), and only reaches the config if you ask for it in the comment.
 
 - **Reference** — curated cheat sheets, collapsed to a scannable index and
   filtered by Topic and Kind dropdowns plus a live search: diagnostic command
