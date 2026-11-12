@@ -20,7 +20,8 @@ import {
  *     order: 10              # optional, lower sorts first
  *     ---
  *
- *     Any prose before the first command becomes the section note.
+ *     Any prose before the first command becomes the section note; prose
+ *     between a `###` heading and its fenced block describes that block.
  *
  *     `get vpn ipsec tunnel summary` - One line per tunnel
  *     - `diagnose vpn tunnel list` - Bullets work too
@@ -99,6 +100,8 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
   const intro: string[] = [];
   /** The most recent `###` heading, used to title the next fenced block. */
   let lastHeading = '';
+  /** Prose under that heading, which describes the fenced block it titles. */
+  let headingProse: string[] = [];
   let sawContent = false;
 
   const lines = body.split('\n');
@@ -136,15 +139,21 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
       } else {
         const text = block.join('\n').replace(/^\n+|\n+$/g, '');
         if (!text) fail('a fenced config block is empty');
-        snippets.push({ title: lastHeading || title, body: text });
+        snippets.push({
+          title: lastHeading || title,
+          ...(headingProse.length ? { description: headingProse.join(' ') } : {}),
+          body: text,
+        });
       }
       sawContent = true;
       lastHeading = '';
+      headingProse = [];
       continue;
     }
 
     if (/^#{1,6}\s/.test(trimmed)) {
       lastHeading = trimmed.replace(/^#{1,6}\s+/, '').trim();
+      headingProse = [];
       continue;
     }
 
@@ -155,6 +164,12 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
         ...(command[2]?.trim() ? { description: command[2].trim() } : {}),
       });
       sawContent = true;
+      continue;
+    }
+
+    // Prose between a heading and its fenced block describes that block.
+    if (trimmed && lastHeading) {
+      headingProse.push(trimmed);
       continue;
     }
 

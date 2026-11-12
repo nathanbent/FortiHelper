@@ -200,7 +200,8 @@ end
 - a line of the form `` `command` - description `` becomes a copyable row;
   the description is optional, and `-`, `–`, `—` all separate it
 - a plain fenced block becomes a config snippet copied whole, titled by the
-  `###` heading above it
+  `###` heading above it; prose between that heading and the block is shown
+  as the snippet's description
 - ```` ```commands ```` makes every line in the block its own row — handy for
   pasting a sequence you have no descriptions for
 - ```` ```colors ```` reads `<id> - <name>` rows and renders a swatch

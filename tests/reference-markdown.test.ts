@@ -107,6 +107,17 @@ describe('parseSheet blocks', () => {
     expect(s.snippets![0].title).toBe('Demo sheet');
   });
 
+  it('uses prose between a heading and its fence as the snippet description', () => {
+    const s = parseSheet(
+      sheet('Sheet note.', '', '### One', 'Lowest wins.', 'Multiples of 4096.', '```', 'a', 'b', '```', '### Two', '```', 'c', 'd', '```'),
+    );
+    expect(s.description).toBe('Sheet note.');
+    expect(s.snippets).toEqual([
+      { title: 'One', description: 'Lowest wins. Multiples of 4096.', body: 'a\nb' },
+      { title: 'Two', body: 'c\nd' },
+    ]);
+  });
+
   it('does not reuse one heading for two snippets', () => {
     const s = parseSheet(sheet('### One', '```', 'a', 'b', '```', '```', 'c', 'd', '```'));
     expect(s.snippets!.map((x) => x.title)).toEqual(['One', 'Demo sheet']);
