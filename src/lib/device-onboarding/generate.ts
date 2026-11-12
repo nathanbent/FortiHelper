@@ -29,6 +29,8 @@ export const MAX_NAME = 35;
 export const MAX_SWITCH_DESCRIPTION = 63;
 export const MAX_AP_LOCATION = 35;
 export const MAX_GROUP_NAME = 35;
+/** A switch ID was 16 characters when FortiOS 7.4.0 made it renameable; later builds take 35. */
+export const MAX_SWITCH_ID_EARLY = 16;
 
 /** Serials per `append members` line, so no pasted line runs long. */
 const MEMBERS_PER_LINE = 8;
@@ -51,6 +53,14 @@ export interface OnboardingOptions {
    */
   memberMode?: 'append' | 'set';
 
+  /**
+   * Rename each switch from its serial number to its Name instead of
+   * setting `name`: `rename "<serial>" to "<name>"`, with the rest of the
+   * settings applied under the new ID. For switches the FortiGate already
+   * lists, on FortiOS 7.4 or later; FortiAPs always keep their serial as
+   * their ID. Default false.
+   */
+  renameSwitches?: boolean;
   /** `set fsw-wan1-admin …`. Default 'authorize'. */
   switchAuth?: AuthAction;
   /** FortiLink interface: `set fsw-wan1-peer` and the group's `set fortilink`. Default 'fortilink'. */
@@ -106,6 +116,10 @@ interface Planned {
   comment: string;
   group: string;
   profile: string;
+  /** The `edit` key: the serial, or the name a switch is renamed to. */
+  id: string;
+  /** True when the entry is renamed from its serial to `id`. */
+  renamed: boolean;
 }
 
 /**
@@ -123,6 +137,7 @@ export function generateOnboarding(
     bulkComment: (options.bulkComment ?? '').trim(),
     keyInComment: options.keyInComment ?? false,
     memberMode: options.memberMode ?? 'append',
+    renameSwitches: options.renameSwitches ?? false,
     switchAuth: options.switchAuth ?? 'authorize',
     fortilink: (options.fortilink ?? 'fortilink').trim(),
     switchGroup: (options.switchGroup ?? '').trim(),
@@ -162,7 +177,34 @@ export function generateOnboarding(
       }
     }
 
-    if (o.setName && device.name.length > MAX_NAME) {
+    let id = device.serial;
+    let renamed = false;
+    if (o.renameSwitches && !isAp) {
+      if (!device.name) {
+        warnings.push({
+          line: device.row,
+          message: `${device.serial}: no name to rename it to, so it keeps its serial number as its ID`,
+        });
+      } else if (device.name.toUpperCase() !== device.serial) {
+        id = device.name;
+        renamed = true;
+        if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+          warnings.push({
+            line: device.row,
+            message: `${device.serial}: "${id}" may be refused as a switch ID — FortiOS documents letters, digits, - and _ only`,
+          });
+        }
+        if (id.length > MAX_SWITCH_ID_EARLY && id.length <= MAX_NAME) {
+          warnings.push({
+            line: device.row,
+            kind: 'fix',
+            message: `${device.serial}: "${id}" is ${id.length} characters — fine on current FortiOS (35), but 7.4.0 allowed only ${MAX_SWITCH_ID_EARLY} in a switch ID`,
+          });
+        }
+      }
+    }
+
+    if ((o.setName || renamed) && device.name.length > MAX_NAME) {
       warnings.push({
         line: device.row,
         message: `${device.serial}: name "${device.name}" is ${device.name.length} characters; the limit is ${MAX_NAME}`,
@@ -187,8 +229,25 @@ export function generateOnboarding(
     }
 
     const group = device.group || (isAp ? o.apGroup : o.switchGroup);
-    return { device, comment, group, profile };
+    return { device, comment, group, profile, id, renamed };
   });
+
+  // Two switches renamed to one ID would collapse into a single entry.
+  const renamedTo = new Map<string, Planned>();
+  for (const p of planned) {
+    if (!p.renamed) continue;
+    const first = renamedTo.get(p.id.toLowerCase());
+    if (first) {
+      warnings.push({
+        line: p.device.row,
+        message: `${p.device.serial}: "${p.id}" is already the new ID of ${first.device.serial}, so it keeps its serial number as its ID`,
+      });
+      p.id = p.device.serial;
+      p.renamed = false;
+    } else {
+      renamedTo.set(p.id.toLowerCase(), p);
+    }
+  }
 
   // ---- group checks ----
   const groupNames = new Set<string>();
@@ -276,7 +335,7 @@ function groupsOf(items: Planned[]): Map<string, string[]> {
   for (const p of items) {
     if (!p.group) continue;
     const members = groups.get(p.group) ?? [];
-    members.push(p.device.serial);
+    members.push(p.id);
     groups.set(p.group, members);
   }
   return groups;
@@ -289,9 +348,15 @@ function emitBatch(items: Planned[], o: Resolved): string {
 
   if (switches.length) {
     lines.push('config switch-controller managed-switch');
+    // Renames first, so every edit below finds its entry under the new ID.
     for (const p of switches) {
-      lines.push(indent(1, `edit "${q(p.device.serial)}"`));
-      if (o.setName && p.device.name) lines.push(indent(2, `set name "${q(p.device.name)}"`));
+      if (p.renamed) lines.push(indent(1, `rename "${q(p.device.serial)}" to "${q(p.id)}"`));
+    }
+    for (const p of switches) {
+      lines.push(indent(1, `edit "${q(p.id)}"`));
+      if (o.setName && p.device.name && !p.renamed) {
+        lines.push(indent(2, `set name "${q(p.device.name)}"`));
+      }
       if (p.comment) lines.push(indent(2, `set description "${q(p.comment)}"`));
       // The peer has to be known before a switch that has never connected
       // can be authorized.

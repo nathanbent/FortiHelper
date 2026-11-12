@@ -70,6 +70,7 @@ export const deviceOnboardingTool: Tool = {
       bulkComment: '',
       keyInComment: false,
       memberMode: 'append',
+      renameSwitches: false,
       switchAuth: 'authorize',
       fortilink: 'fortilink',
       switchGroup: '',
@@ -418,6 +419,10 @@ export const deviceOnboardingTool: Tool = {
         }),
         text_('FortiLink interface', 'fortilink', 'fortilink'),
         text_('Switch group', 'switchGroup', 'optional'),
+        checkbox('Rename from serial number to name', opts.renameSwitches, (v) => {
+          opts.renameSwitches = v;
+          regenerate();
+        }, 'instead of setting a name — for switches the FortiGate already lists, FortiOS 7.4+'),
         el('div', 'subhead', 'FortiAP'),
         selectField('Approve / reject', AUTH_OPTIONS, opts.apAuth, (v) => {
           opts.apAuth = v as AuthAction;
