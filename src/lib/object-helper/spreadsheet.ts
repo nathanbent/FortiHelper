@@ -42,8 +42,11 @@ export function columnLabel(index: number): string {
  * Parse clipboard TSV as produced by spreadsheet apps. Interior blank rows
  * are kept so row numbers in warnings match the pasted sheet; the trailing
  * blank row Excel's final newline creates is dropped.
+ *
+ * `delimiter` is the single character between cells — a tab for a
+ * clipboard paste, or `,` / `;` to read a CSV file with the same quoting.
  */
-export function parseSpreadsheet(text: string): SpreadsheetTable {
+export function parseSpreadsheet(text: string, delimiter = '\t'): SpreadsheetTable {
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = '';
@@ -87,7 +90,7 @@ export function parseSpreadsheet(text: string): SpreadsheetTable {
       i++;
       continue;
     }
-    if (ch === '\t') {
+    if (ch === delimiter) {
       endCell();
       i++;
       continue;
