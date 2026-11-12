@@ -307,6 +307,60 @@ describe('generateOnboarding', () => {
     );
   });
 
+  it('renames switches from serial to name when asked, leaving APs alone', () => {
+    const { batches, warnings } = generateOnboarding(load(SHEET).devices, {
+      renameSwitches: true,
+      switchGroup: 'Floor1',
+    });
+    expect(warnings).toEqual([]);
+    expect(batches[0].output).toBe(
+      [
+        'config switch-controller managed-switch',
+        '    rename "S248EPTF00000001" to "IDF1-SW1"',
+        '    edit "IDF1-SW1"',
+        '        set description "First floor IDF"',
+        '        set fsw-wan1-peer "fortilink"',
+        '        set fsw-wan1-admin enable',
+        '    next',
+        'end',
+        'config switch-controller switch-group',
+        '    edit "Floor1"',
+        '        set fortilink "fortilink"',
+        '        append members "IDF1-SW1"',
+        '    next',
+        'end',
+        'config wireless-controller wtp',
+        '    edit "FP231FTF00000003"',
+        '        set admin enable',
+        '        set name "AP-Lobby"',
+        '        set location "Lobby ceiling"',
+        '    next',
+        'end',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('keeps the serial as the ID when a rename has no usable name', () => {
+    const { batches, warnings } = generateOnboarding(
+      load(
+        'serial,name\nS248EPTF00000001,\nS248EPTF00000002,Core SW\nS248EPTF00000003,dup\nS248EPTF00000004,DUP',
+      ).devices,
+      { renameSwitches: true },
+    );
+    const out = batches[0].output;
+    expect(out.match(/^ {4}rename .*/gm)).toEqual([
+      '    rename "S248EPTF00000002" to "Core SW"',
+      '    rename "S248EPTF00000003" to "dup"',
+    ]);
+    expect(out).toContain('edit "S248EPTF00000001"');
+    expect(out).toContain('edit "S248EPTF00000004"\n        set name "DUP"');
+    const messages = warnings.map((w) => w.message).join('\n');
+    expect(messages).toContain('S248EPTF00000001: no name to rename it to');
+    expect(messages).toContain('"Core SW" may be refused as a switch ID');
+    expect(messages).toContain('"DUP" is already the new ID of S248EPTF00000003');
+  });
+
   it('warns about a FortiAP group holding two models', () => {
     const { warnings } = generateOnboarding(load('FP231FTF00000003\nFP431FTF00000004').devices, {
       apGroup: 'All',

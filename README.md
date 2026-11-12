@@ -73,7 +73,10 @@ carries the same split as hairline-separated groups.
   approve / reject / back to discovered, the FortiLink interface, switch and
   AP groups, and the FortiAP profile (`FAP{model}-default` gives each AP its
   model's default). Comments become the switch `description` and the AP
-  `location`. Output is cut into **batches** (50 devices by default), each a
+  `location`. An opt-in **Rename from serial number to name** emits
+  `rename "<serial>" to "<name>"` for switches the FortiGate already lists
+  (FortiOS 7.4+), applying the other settings under the new ID; APs keep
+  their serial as their ID. Output is cut into **batches** (50 devices by default), each a
   complete block with its own Copy button that stays ticked once copied;
   group members are added with `append`, so pasting batch 2 does not undo
   batch 1. The FortiCloud key is tracked rather than configured: it shows in
