@@ -940,3 +940,76 @@ mark.ref-filled.ref-hit { padding: 0 0.15em; }
 .ref-var-warn { color: #b45309; font-size: 0.75rem; }
 
 .ref-var input[aria-invalid='true'] { border-color: #b45309; }
+
+/* --- Reference: badges, version filter, favourites, recents, keyboard --- */
+.ref-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.5;
+  padding: 0 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--secondary);
+  white-space: nowrap;
+}
+
+.ref-entry .ref-badge { align-self: center; }
+
+.ref-filters .ref-version { flex: 0 1 170px; }
+
+.ref-star {
+  min-width: 2rem;
+  justify-content: center;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  color: var(--secondary);
+}
+
+.ref-star-on { color: #d99a00; }
+
+.ref-recent {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.ref-recent-label {
+  color: var(--secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 0.2rem;
+}
+
+.ref-recent .ref-chip {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-recent-clear {
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  border: none;
+  background: none;
+  color: var(--secondary);
+}
+
+.ref-keys { color: var(--secondary); font-size: 0.75rem; margin-left: auto; }
+
+/* Keyboard hints mean nothing on a touch screen. */
+@media (hover: none), (max-width: 640px) {
+  .ref-keys { display: none; }
+}
+
+.ref-summary-head:focus-visible,
+.ref-entry:focus-visible,
+.ref-snippet:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}

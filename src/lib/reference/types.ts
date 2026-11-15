@@ -43,7 +43,19 @@ export interface ReferenceEntry {
   swatch?: number;
   /** What to look for in the command's output, shown under the row. */
   expect?: string;
+  /** First FortiOS release that has this command, e.g. `7.4.4`. */
+  since?: string;
+  /** First FortiOS release that no longer has it. */
+  until?: string;
 }
+
+/** Devices a sheet's commands can be meant for, with their badge labels. */
+export const RUN_ON = [
+  { value: 'fortigate', label: 'FortiGate' },
+  { value: 'fortiswitch', label: 'FortiSwitch' },
+] as const;
+
+export type RunOn = (typeof RUN_ON)[number]['value'];
 
 /** What a variable holds, for a light sanity check on what is typed. */
 export const VARIABLE_TYPES = ['ip', 'cidr', 'mask', 'port', 'number'] as const;
@@ -81,6 +93,12 @@ export interface ReferenceSection {
   description?: string;
   entries?: ReferenceEntry[];
   snippets?: ReferenceSnippet[];
+  /** Which device's CLI the commands are typed into, when that is in doubt. */
+  runOn?: RunOn;
+  /** First FortiOS release the whole sheet applies to. */
+  since?: string;
+  /** First FortiOS release the sheet no longer applies to. */
+  until?: string;
   /** This sheet's own `## Variables`, overriding the shared catalogue. */
   variables?: ReferenceVariable[];
   /**

@@ -4,6 +4,10 @@ import { colorHex } from '../lib/colors';
 import {
   referenceSections,
   REFERENCE_TOPICS,
+  RUN_ON,
+  parseVersion,
+  versionApplies,
+  versionBadge,
   groupByTopic,
   REFERENCE_KINDS,
   topicLabel,
@@ -72,6 +76,40 @@ function sectionMatches(section: ReferenceSection, query: string): boolean {
     .includes(query);
 }
 
+// Browser-side conveniences. Sheet ids and a version number only: values
+// typed into variable fields are never stored.
+const FAVOURITES_KEY = 'fortihelper:reference:favourites';
+const RECENT_KEY = 'fortihelper:reference:recent';
+const VERSION_KEY = 'fortihelper:reference:fortios';
+/** How many recently opened sheets to remember. */
+const RECENT_MAX = 6;
+
+/** Read a stored string; storage can be blocked or empty, so never throw. */
+function readStored(key: string): string {
+  try {
+    return localStorage.getItem(key) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function writeStored(key: string, value: string): void {
+  try {
+    if (value) localStorage.setItem(key, value);
+    else localStorage.removeItem(key);
+  } catch {
+    // Private mode or blocked storage: the page works, it just forgets.
+  }
+}
+
+/** Stored sheet ids, dropping any that no longer name a sheet. */
+function readIds(key: string): string[] {
+  const known = new Set(referenceSections.map((s) => s.id));
+  return readStored(key)
+    .split(',')
+    .filter((id) => known.has(id));
+}
+
 export const referenceTool: Tool = {
   id: 'reference',
   title: 'Reference',
@@ -83,6 +121,12 @@ export const referenceTool: Tool = {
     let query = '';
     /** Sections the user opened by hand, so filtering does not fight them. */
     const userOpened = new Set<string>();
+    /** Pinned sheets, in the order they were pinned. */
+    const favourites = readIds(FAVOURITES_KEY);
+    /** Recently opened sheets, newest first. */
+    let recent = readIds(RECENT_KEY);
+    /** The FortiOS version the reader runs, when they have said. */
+    let running = parseVersion(readStored(VERSION_KEY));
     // `#/reference/<sheet id>` opens straight to that sheet.
     const linked = referenceSections.find((s) => s.id === param);
     if (linked) userOpened.add(linked.id);
@@ -132,6 +176,32 @@ export const referenceTool: Tool = {
       searchField,
     );
 
+    // FortiOS version: hides commands and sheets that do not apply to it.
+    const versionField = el('div', 'field ref-version');
+    versionField.append(el('label', undefined, 'FortiOS version'));
+    const versionInput = el('input');
+    versionInput.type = 'text';
+    versionInput.placeholder = 'Any, or e.g. 7.4.5';
+    versionInput.inputMode = 'decimal';
+    versionInput.autocomplete = 'off';
+    versionInput.value = readStored(VERSION_KEY);
+    versionInput.title = 'Hides commands and sheets that do not apply to this release';
+    const versionWarn = el('small', 'ref-var-warn', 'Enter a version such as 7.4 or 7.4.5');
+    setShown(versionWarn, false);
+    versionInput.addEventListener('input', () => {
+      const text = versionInput.value.trim();
+      running = parseVersion(text);
+      const bad = text !== '' && running === null;
+      setShown(versionWarn, bad);
+      if (bad) versionInput.setAttribute('aria-invalid', 'true');
+      else versionInput.removeAttribute('aria-invalid');
+      writeStored(VERSION_KEY, running ? text : '');
+      applyFilter();
+    });
+    versionField.append(versionInput, versionWarn);
+    // Between Kind and Search, so Search keeps the widest slot.
+    row.insertBefore(versionField, searchField);
+
     const summary = el('div', 'ref-summary', '');
     const expandBtn = el('button', 'btn', 'Expand all');
     expandBtn.addEventListener('click', () => {
@@ -147,8 +217,12 @@ export const referenceTool: Tool = {
     });
 
     const summaryRow = el('div', 'ref-summary-row');
-    summaryRow.append(summary, expandBtn);
-    filters.append(chips, row, summaryRow);
+    const keysHint = el('span', 'ref-keys', '/ search \u00b7 \u2191 \u2193 move \u00b7 Enter open or copy');
+    summaryRow.append(summary, keysHint, expandBtn);
+
+    // Recently opened sheets, as shortcuts back to them.
+    const recentRow = el('div', 'ref-recent');
+    filters.append(chips, row, recentRow, summaryRow);
     container.append(filters);
 
     // ---------- variables ----------
@@ -438,20 +512,55 @@ export const referenceTool: Tool = {
     }
 
     // ---------- sections ----------
+    interface RenderedRow {
+      row: HTMLElement;
+      matches: (q: string) => boolean;
+      /** False when the FortiOS version entered rules this row out. */
+      applies: () => boolean;
+    }
     const rendered: {
       section: ReferenceSection;
       panel: HTMLDetailsElement;
-      rows: { row: HTMLElement; matches: (q: string) => boolean }[];
+      head: HTMLElement;
+      rows: RenderedRow[];
+      tag: HTMLElement;
+      /** The tag text without a topic, as shown inside a topic group. */
+      kindTag: string;
+      star: HTMLButtonElement;
     }[] = [];
-    /** One heading per topic, shown while any of its sheets is. */
-    const groupHeads: { topic: string; head: HTMLElement; count: HTMLElement }[] = [];
+
+    /** Make a row a keyboard stop where Enter presses its Copy button. */
+    function copyOnEnter(row: HTMLElement, copy: HTMLButtonElement): void {
+      row.tabIndex = 0;
+      row.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' || event.target !== row) return;
+        event.preventDefault();
+        copy.click();
+      });
+    }
+    /**
+     * One heading per group, shown while any of its sheets is. The first is
+     * Favourites; the rest are the topics. A pinned sheet moves up into
+     * Favourites and out of its topic group.
+     */
+    const FAVOURITES = 'favourites';
+    const groupHeads: { key: string; head: HTMLElement; count: HTMLElement }[] = [];
+    const list = el('div', 'ref-list');
+    container.append(list);
+
+    function groupHeading(key: string, label: string): void {
+      const head = el('h3', 'ref-group');
+      const count = el('span', 'ref-group-count', '');
+      head.append(document.createTextNode(label), count);
+      groupHeads.push({ key, head, count });
+    }
+    groupHeading(FAVOURITES, '\u2605 Favourites');
+
+    const groupOf = (section: ReferenceSection): string =>
+      favourites.includes(section.id) ? FAVOURITES : section.topic;
 
     for (const { topic: groupTopic, sections } of groupByTopic(referenceSections)) {
-      const groupHead = el('h3', 'ref-group');
-      const groupCount = el('span', 'ref-group-count', '');
-      groupHead.append(document.createTextNode(topicLabel(groupTopic)), groupCount);
-      container.append(groupHead);
-      groupHeads.push({ topic: groupTopic, head: groupHead, count: groupCount });
+      groupHeading(groupTopic, topicLabel(groupTopic));
 
       for (const section of sections) {
         const panel = el('details', 'panel ref-section');
@@ -461,18 +570,38 @@ export const referenceTool: Tool = {
         const heading = el('div', 'ref-heading');
         heading.append(view('span', 'ref-title', section.title));
         const count = sectionItemCount(section);
-        heading.append(
-          // The topic is the group heading above, so the tag carries the kind.
-          // A copyAll sheet is a sequence run in order, so its rows are steps.
-          el(
-            'span',
-            'ref-tag',
-            `${kindLabel(section.kind)} \u00b7 ${count} ${section.copyAll ? 'step' : 'item'}${
-              count === 1 ? '' : 's'
-            }`,
-          ),
-        );
+        // The topic is the group heading above, so the tag carries the kind;
+        // under Favourites there is no such heading, so it carries both.
+        // A copyAll sheet is a sequence run in order, so its rows are steps.
+        const kindTag = `${kindLabel(section.kind)} \u00b7 ${count} ${
+          section.copyAll ? 'step' : 'item'
+        }${count === 1 ? '' : 's'}`;
+        const tag = el('span', 'ref-tag', kindTag);
+        heading.append(tag);
+        if (section.runOn) {
+          const device = RUN_ON.find((r) => r.value === section.runOn)!.label;
+          const badge = el('span', 'ref-badge', `Run on ${device}`);
+          badge.title = `Type these into the ${device} CLI`;
+          heading.append(badge);
+        }
+        const sheetVersions = versionBadge(section);
+        if (sheetVersions) heading.append(el('span', 'ref-badge', sheetVersions));
         head.append(heading);
+
+        const star = el('button', 'btn ref-star', '\u2606');
+        star.addEventListener('click', (event) => {
+          // Lives in the summary, where a click would toggle the section.
+          event.preventDefault();
+          event.stopPropagation();
+          const at = favourites.indexOf(section.id);
+          if (at === -1) favourites.push(section.id);
+          else favourites.splice(at, 1);
+          writeStored(FAVOURITES_KEY, favourites.join(','));
+          layout();
+          applyFilter();
+          star.focus();
+        });
+        head.append(star);
 
         if (section.copyAll && section.entries) {
           const block = section.entries
@@ -494,7 +623,7 @@ export const referenceTool: Tool = {
         const vars = variableFields(section);
         if (vars) body.append(vars);
 
-        const rows: { row: HTMLElement; matches: (q: string) => boolean }[] = [];
+        const rows: RenderedRow[] = [];
         /** Commands in this section, for its "Add all" button. */
         const sectionCommands: { cmd: string; row: HTMLElement }[] = [];
 
@@ -515,13 +644,17 @@ export const referenceTool: Tool = {
               : view('code', undefined, entry.text ?? ''),
           );
           if (entry.description) line.append(view('span', 'desc', entry.description));
+          const entryVersions = versionBadge(entry);
+          if (entryVersions) line.append(el('span', 'ref-badge', entryVersions));
+          let copy: HTMLButtonElement | undefined;
           if (entry.command !== undefined) {
             const cmd = entry.command;
             const add = el('button', 'btn ref-add', '+');
             add.title = 'Add to selection';
             add.addEventListener('click', () => toggleCommand(cmd));
             addButtons.set(cmd, [...(addButtons.get(cmd) ?? []), add]);
-            line.append(add, copyButton('Copy', () => fillPlaceholders(cmd, values)));
+            copy = copyButton('Copy', () => fillPlaceholders(cmd, values));
+            line.append(add, copy);
             sectionCommands.push({ cmd, row: line });
           }
           if (entry.expect) {
@@ -531,19 +664,30 @@ export const referenceTool: Tool = {
             line.append(expect);
           }
           body.append(line);
-          rows.push({ row: line, matches: (q) => entryMatches(entry, q, fillShown) });
+          if (copy) copyOnEnter(line, copy);
+          rows.push({
+            row: line,
+            matches: (q) => entryMatches(entry, q, fillShown),
+            applies: () => versionApplies(running, entry),
+          });
         }
 
         for (const snippet of section.snippets ?? []) {
           const card = el('div', 'ref-snippet');
           const snipHead = el('div', 'ref-snippet-head');
           snipHead.append(view('strong', undefined, snippet.title));
-          snipHead.append(copyButton('Copy', () => fillPlaceholders(snippet.body, values)));
+          const copy = copyButton('Copy', () => fillPlaceholders(snippet.body, values));
+          snipHead.append(copy);
+          copyOnEnter(card, copy);
           card.append(snipHead);
           if (snippet.description) card.append(view('span', 'desc', snippet.description));
           card.append(view('pre', 'output', snippet.body, true));
           body.append(card);
-          rows.push({ row: card, matches: (q) => snippetMatches(snippet, q, fillShown) });
+          rows.push({
+            row: card,
+            matches: (q) => snippetMatches(snippet, q, fillShown),
+            applies: () => true,
+          });
         }
 
         if (sectionCommands.length > 1) {
@@ -566,16 +710,159 @@ export const referenceTool: Tool = {
         head.addEventListener('click', () => {
           // The default action flips `open` after this handler runs.
           if (panel.open) userOpened.delete(section.id);
-          else userOpened.add(section.id);
+          else {
+            userOpened.add(section.id);
+            noteRecent(section.id);
+          }
         });
 
-        container.append(panel);
-        rendered.push({ section, panel, rows });
+        rendered.push({ section, panel, head, rows, tag, kindTag, star });
       }
+    }
+
+    /** Put headings and sheets in order: Favourites first, then each topic. */
+    function layout(): void {
+      const ordered: HTMLElement[] = [];
+      for (const { key, head } of groupHeads) {
+        ordered.push(head);
+        const members = rendered.filter((r) => groupOf(r.section) === key);
+        if (key === FAVOURITES) {
+          members.sort((a, b) => favourites.indexOf(a.section.id) - favourites.indexOf(b.section.id));
+        }
+        ordered.push(...members.map((r) => r.panel));
+      }
+      list.replaceChildren(...ordered);
+
+      for (const { section, tag, kindTag, star } of rendered) {
+        const pinned = favourites.includes(section.id);
+        tag.textContent = pinned ? `${topicLabel(section.topic)} \u00b7 ${kindTag}` : kindTag;
+        star.textContent = pinned ? '\u2605' : '\u2606';
+        star.classList.toggle('ref-star-on', pinned);
+        star.title = pinned ? 'Remove from Favourites' : 'Pin to Favourites at the top';
+        star.setAttribute('aria-label', star.title);
+        star.setAttribute('aria-pressed', String(pinned));
+      }
+    }
+
+    // ---------- recently opened ----------
+    function noteRecent(id: string): void {
+      recent = [id, ...recent.filter((r) => r !== id)].slice(0, RECENT_MAX);
+      writeStored(RECENT_KEY, recent.join(','));
+      syncRecent();
+    }
+
+    function syncRecent(): void {
+      setShown(recentRow, recent.length > 0);
+      const clear = el('button', 'btn ref-recent-clear', 'Clear');
+      clear.title = 'Forget recently opened sheets';
+      clear.addEventListener('click', () => {
+        recent = [];
+        writeStored(RECENT_KEY, '');
+        syncRecent();
+      });
+      recentRow.replaceChildren(
+        el('span', 'ref-recent-label', 'Recent'),
+        ...recent.map((id) => {
+          const section = referenceSections.find((s) => s.id === id)!;
+          const chip = el('button', 'btn ref-chip', section.title);
+          chip.addEventListener('click', () => openSheet(id));
+          return chip;
+        }),
+        clear,
+      );
+    }
+
+    /** Open a sheet and bring it into view, lifting any filter that hides it. */
+    function openSheet(id: string): void {
+      const target = rendered.find((r) => r.section.id === id);
+      if (!target) return;
+      userOpened.add(id);
+      noteRecent(id);
+      applyFilter();
+      if (target.panel.hidden) {
+        topic = 'all';
+        kind = 'all';
+        query = '';
+        search.value = '';
+        const kindSelect = row.querySelector('select');
+        if (kindSelect) kindSelect.value = 'all';
+        for (const v of views) renderView(v);
+        applyFilter();
+      }
+      target.panel.open = true;
+      target.panel.scrollIntoView({ block: 'start' });
+      target.head.focus({ preventScroll: true });
     }
 
     const noMatches = el('p', 'ref-note', 'Nothing matches those filters.');
     container.append(noMatches, tray);
+    layout();
+
+    // ---------- keyboard ----------
+    /** Things the arrow keys step through: sheet headers, and rows of open sheets. */
+    function stops(): HTMLElement[] {
+      return [...list.querySelectorAll<HTMLElement>('summary, .ref-entry[tabindex], .ref-snippet')].filter(
+        (node) => {
+          const panel = node.closest('details')!;
+          if (panel.hidden || node.hidden) return false;
+          return node.tagName === 'SUMMARY' || panel.open;
+        },
+      );
+    }
+
+    function onKey(event: KeyboardEvent): void {
+      // The shell replaces the container on navigation: stop listening then.
+      if (!container.isConnected) {
+        document.removeEventListener('keydown', onKey);
+        return;
+      }
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target as HTMLElement;
+      const typing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement;
+
+      if (event.key === '/' && !typing) {
+        event.preventDefault();
+        search.focus();
+        search.select();
+        return;
+      }
+      if (event.key === 'Escape' && target === search) {
+        search.value = '';
+        search.dispatchEvent(new Event('input'));
+        search.blur();
+        return;
+      }
+      // Arrows keep their usual meaning in every field except the search box.
+      if (typing && target !== search) return;
+
+      const all = stops();
+      const at = all.indexOf(target);
+      const onStop = at !== -1;
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        if (!onStop && target !== search && target !== document.body) return;
+        const next = event.key === 'ArrowDown' ? all[at + 1] : at <= 0 ? search : all[at - 1];
+        if (!next) return;
+        event.preventDefault();
+        next.focus();
+        next.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+      if ((event.key === 'ArrowRight' || event.key === 'ArrowLeft') && target.tagName === 'SUMMARY') {
+        const item = rendered.find((r) => r.head === target);
+        if (!item) return;
+        event.preventDefault();
+        const open = event.key === 'ArrowRight';
+        item.panel.open = open;
+        if (open) {
+          userOpened.add(item.section.id);
+          noteRecent(item.section.id);
+        } else userOpened.delete(item.section.id);
+      }
+    }
+    document.addEventListener('keydown', onKey);
 
     function applyFilter(): void {
       let visibleSections = 0;
@@ -583,19 +870,20 @@ export const referenceTool: Tool = {
 
       /** Sheets the kind filter and search leave, per topic, whatever chip is on. */
       const available = new Map<string, number>();
-      /** Sheets actually shown, per topic. */
+      /** Sheets actually shown, per group (Favourites or a topic). */
       const shown = new Map<string, number>();
 
       for (const { section, panel, rows } of rendered) {
-        const kindOk = kind === 'all' || section.kind === kind;
+        const kindOk =
+          (kind === 'all' || section.kind === kind) && versionApplies(running, section);
         const inScope = (topic === 'all' || section.topic === topic) && kindOk;
 
         // A query matching the section title keeps all its rows, so a search
         // for "IPsec" shows whole sheets rather than stripping them to nothing.
         const wholeSection = sectionMatches(section, query);
         let visibleRows = 0;
-        for (const { row, matches } of rows) {
-          const show = wholeSection || matches(query);
+        for (const { row, matches, applies } of rows) {
+          const show = (wholeSection || matches(query)) && applies();
           setShown(row, show);
           if (show) visibleRows++;
         }
@@ -607,7 +895,7 @@ export const referenceTool: Tool = {
         const show = inScope && visibleRows > 0;
         setShown(panel, show);
         if (show) {
-          shown.set(section.topic, (shown.get(section.topic) ?? 0) + 1);
+          shown.set(groupOf(section), (shown.get(groupOf(section)) ?? 0) + 1);
           visibleSections++;
           visibleItems += visibleRows;
           // Searching should reveal what it found; otherwise respect the user.
@@ -615,8 +903,8 @@ export const referenceTool: Tool = {
         }
       }
 
-      for (const { topic: t, head, count } of groupHeads) {
-        const n = shown.get(t) ?? 0;
+      for (const { key, head, count } of groupHeads) {
+        const n = shown.get(key) ?? 0;
         setShown(head, n > 0);
         count.textContent = `${n} sheet${n === 1 ? '' : 's'}`;
       }
@@ -645,10 +933,12 @@ export const referenceTool: Tool = {
     applyFilter();
     syncBar();
     syncTray();
+    syncRecent();
 
     if (linked) {
       const target = rendered.find((r) => r.section.id === linked.id)?.panel;
       target?.classList.add('ref-target');
+      noteRecent(linked.id);
       // After layout, so the scroll lands on the opened sheet.
       requestAnimationFrame(() => target?.scrollIntoView({ block: 'start' }));
     }
