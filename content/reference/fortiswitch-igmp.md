@@ -7,7 +7,7 @@ order: 62
 runOn: fortigate
 ---
 
-Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Option names and values checked against the FortiOS 7.6 CLI reference and FortiLink guide, but not pasted into a device. Older releases can differ, so check with ? in the CLI before pasting. Replace every <placeholder>.
 
 ### Global IGMP-snooping settings
 

@@ -7,7 +7,7 @@ order: 64.8
 runOn: fortigate
 ---
 
-Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Option names and values checked against the FortiOS 7.6 CLI reference and FortiLink guide, but not pasted into a device. Older releases can differ, so check with ? in the CLI before pasting. Replace every <placeholder>.
 
 `execute switch-controller switch-action poe reset <FortiSwitch_serial_number> <port>` - Power-cycle a PoE port [7.4+]
 
@@ -50,7 +50,7 @@ end
 
 ### Port priority and power mode
 
-When the power budget runs out, low-priority ports lose power first. Priority is critical-priority, high-priority, medium-priority, or low-priority; mode is ieee802-3af (15.4 W) or ieee802-3at (30 W). Not every model has these options.
+When the power budget runs out, low-priority ports lose power first. Priority is critical-priority, high-priority, medium-priority, or low-priority; mode is ieee802-3af (15.4 W), ieee802-3at (30 W), or ieee802-3bt on models that have it. Needs FortiOS 7.2.4 and FortiSwitchOS 7.2.3 or later.
 
 ```
 config switch-controller managed-switch
