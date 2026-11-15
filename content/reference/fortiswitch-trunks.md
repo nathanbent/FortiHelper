@@ -7,7 +7,9 @@ order: 64
 runOn: fortigate
 ---
 
-Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Option names and values checked against the FortiOS 7.6 CLI reference and FortiLink guide, but not pasted into a device. Older releases can differ, so check with ? in the CLI before pasting. Replace every <placeholder>.
+
+`execute switch-controller custom-command <command-name> <switch-id>` - Run a custom command once on one switch, without binding it
 
 ### LACP trunk (LAG) on one switch
 
