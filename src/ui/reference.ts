@@ -15,7 +15,11 @@ import {
   fillParts,
   fillPlaceholders,
   isSecretPlaceholder,
-  placeholderLabel,
+  checkVariableValue,
+  describeVariable,
+  markMatches,
+  sharedVariables,
+  type FilledPart,
   placeholdersIn,
   sectionPlaceholders,
 } from '../lib/reference';
@@ -35,17 +39,25 @@ function copyButton(label: string, getText: () => string): HTMLButtonElement {
   return btn;
 }
 
-/** True when the entry matches the (already lowercased) query. */
-function entryMatches(entry: ReferenceEntry, query: string): boolean {
+/** Substitutes entered values, so a search also finds what was typed in. */
+type Fill = (text: string) => string;
+
+/**
+ * True when the entry matches the (already lowercased) query, either as
+ * written in the sheet or with the entered values filled in.
+ */
+function entryMatches(entry: ReferenceEntry, query: string, fill: Fill): boolean {
   if (!query) return true;
-  const haystack =
-    `${entry.command ?? ''} ${entry.text ?? ''} ${entry.description ?? ''}`.toLowerCase();
+  const command = entry.command ?? '';
+  const haystack = `${command} ${fill(command)} ${entry.text ?? ''} ${entry.description ?? ''} ${
+    entry.expect ?? ''
+  }`.toLowerCase();
   return haystack.includes(query);
 }
 
-function snippetMatches(snippet: ReferenceSnippet, query: string): boolean {
+function snippetMatches(snippet: ReferenceSnippet, query: string, fill: Fill): boolean {
   if (!query) return true;
-  return `${snippet.title} ${snippet.description ?? ''} ${snippet.body}`
+  return `${snippet.title} ${snippet.description ?? ''} ${snippet.body} ${fill(snippet.body)}`
     .toLowerCase()
     .includes(query);
 }
@@ -86,6 +98,7 @@ export const referenceTool: Tool = {
     search.placeholder = 'Command or description...';
     search.addEventListener('input', () => {
       query = search.value.trim().toLowerCase();
+      for (const v of views) renderView(v);
       applyFilter();
     });
     searchField.append(search);
@@ -146,70 +159,109 @@ export const referenceTool: Tool = {
     const values = new Map<string, string>();
     /** `values` without secrets: what is safe to draw on screen. */
     const shownValues = new Map<string, string>();
-    /** Every input for a placeholder, so the same field in other sections follows. */
-    const varInputs = new Map<string, HTMLInputElement[]>();
-    /** Elements showing text with placeholders, redrawn when a value changes. */
-    const filledViews: { node: HTMLElement; template: string }[] = [];
+    /** Every field for a placeholder, so the same one in other sections follows. */
+    const varInputs = new Map<string, { input: HTMLInputElement; check: () => void }[]>();
+    /**
+     * Every piece of sheet text on the page. Redrawn to highlight search
+     * matches, and, for those marked `fill`, when a value they use changes.
+     */
+    const views: { node: HTMLElement; template: string; fill: boolean }[] = [];
 
-    /** Draw `template` into `node` with entered values substituted and marked. */
-    function renderFilled(node: HTMLElement, template: string): void {
-      node.replaceChildren(
-        ...fillParts(template, shownValues).map((part) => {
-          if (part.placeholder === undefined) return document.createTextNode(part.text);
-          const mark = el('mark', 'ref-filled', part.text);
-          mark.title = part.placeholder;
-          return mark;
-        }),
-      );
+    const fillShown: Fill = (text) => fillPlaceholders(text, shownValues);
+
+    /** Text runs as nodes: filled-in values and search matches are marked. */
+    function partNodes(parts: FilledPart[]): Node[] {
+      return parts.map((part) => {
+        if (part.placeholder === undefined && !part.match) return document.createTextNode(part.text);
+        const classes = [part.placeholder !== undefined && 'ref-filled', part.match && 'ref-hit'];
+        const mark = el('mark', classes.filter(Boolean).join(' '), part.text);
+        if (part.placeholder !== undefined) mark.title = part.placeholder;
+        return mark;
+      });
     }
 
-    /** A code/pre element showing `template`, kept in step with the values. */
-    function filledView<K extends 'code' | 'pre'>(
+    function renderView({ node, template, fill }: (typeof views)[number]): void {
+      const parts = fill ? fillParts(template, shownValues) : [{ text: template }];
+      node.replaceChildren(...partNodes(markMatches(parts, query)));
+    }
+
+    /**
+     * An element showing sheet text, kept in step with the search and, when
+     * `fill` is set, with the entered values.
+     */
+    function view<K extends keyof HTMLElementTagNameMap>(
       tag: K,
       className: string | undefined,
       template: string,
+      fill = false,
     ): HTMLElementTagNameMap[K] {
       const node = el(tag, className, template);
-      if (placeholdersIn(template).length > 0) filledViews.push({ node, template });
+      views.push({ node, template, fill: fill && placeholdersIn(template).length > 0 });
       return node;
     }
 
     function setValue(name: string, value: string, source?: HTMLInputElement): void {
       values.set(name, value);
       if (!isSecretPlaceholder(name)) shownValues.set(name, value);
-      for (const input of varInputs.get(name) ?? []) {
+      for (const { input, check } of varInputs.get(name) ?? []) {
         if (input !== source) input.value = value;
+        check();
       }
-      for (const { node, template } of filledViews) {
-        if (template.includes(name)) renderFilled(node, template);
+      for (const v of views) {
+        if (v.fill && v.template.includes(name)) renderView(v);
       }
       // A field stays in the bar once added, even if emptied while typing:
       // only its remove button or "Clear all" takes it out.
       if (value.trim()) addBarField(name);
       syncBar();
       syncTray();
+      // What was typed may be what the search is looking for.
+      if (query) applyFilter();
     }
 
-    /** A labelled input for one placeholder, kept in step with every other one. */
-    function variableField(name: string): { field: HTMLLabelElement; input: HTMLInputElement } {
+    /**
+     * A labelled input for one placeholder, kept in step with every other
+     * one. Its label, example and type come from the sheet it sits in, else
+     * from the shared catalogue.
+     */
+    function variableField(
+      name: string,
+      section?: ReferenceSection,
+    ): { field: HTMLLabelElement; input: HTMLInputElement } {
       const secret = isSecretPlaceholder(name);
+      const info = describeVariable(name, sharedVariables, section);
       const field = el('label', 'ref-var');
-      field.append(el('span', undefined, placeholderLabel(name)));
+      const label = el('span', undefined, info.label);
+      label.title = name;
+      field.append(label);
       const input = el('input');
       input.type = secret ? 'password' : 'text';
-      input.placeholder = name;
+      input.placeholder = info.example ? `e.g. ${info.example}` : name;
       input.value = values.get(name) ?? '';
       input.autocomplete = secret ? 'new-password' : 'off';
       input.spellcheck = false;
       if (secret) input.title = 'Kept off the screen: filled in only in what you copy';
+
+      // Advisory only: a value that fails the check is still filled in.
+      const warn = el('small', 'ref-var-warn', '');
+      const check = (): void => {
+        const problem = secret ? null : checkVariableValue(info.type, input.value);
+        warn.textContent = problem ?? '';
+        setShown(warn, problem !== null);
+        if (problem) input.setAttribute('aria-invalid', 'true');
+        else input.removeAttribute('aria-invalid');
+      };
+      check();
+
       input.addEventListener('input', () => setValue(name, input.value, input));
-      varInputs.set(name, [...(varInputs.get(name) ?? []), input]);
-      field.append(input);
+      varInputs.set(name, [...(varInputs.get(name) ?? []), { input, check }]);
+      field.append(input, warn);
       return { field, input };
     }
 
     /** The row of variable fields for a section, or null when it has none. */
-    function variableFields(names: string[]): HTMLElement | null {
+    function variableFields(section: ReferenceSection): HTMLElement | null {
+      const names = sectionPlaceholders(section);
       if (names.length === 0) return null;
       const wrap = el('div', 'ref-vars');
       const head = el('div', 'ref-vars-head');
@@ -224,7 +276,7 @@ export const referenceTool: Tool = {
       head.append(clear);
 
       const fields = el('div', 'ref-vars-fields');
-      for (const name of names) fields.append(variableField(name).field);
+      for (const name of names) fields.append(variableField(name, section).field);
       wrap.append(head, fields);
       return wrap;
     }
@@ -233,8 +285,9 @@ export const referenceTool: Tool = {
     // One place to see and set every value in play. A field appears here as
     // soon as its placeholder gets a value anywhere, or when picked from the
     // "Add" list, so values can be set up front before opening any sheet.
+    const barLabel = (name: string): string => describeVariable(name, sharedVariables).label;
     const allPlaceholders = [...new Set(referenceSections.flatMap(sectionPlaceholders))].sort(
-      (a, b) => placeholderLabel(a).localeCompare(placeholderLabel(b)),
+      (a, b) => barLabel(a).localeCompare(barLabel(b)),
     );
     const bar = el('section', 'panel ref-varbar');
     const barHead = el('div', 'ref-vars-head');
@@ -265,7 +318,7 @@ export const referenceTool: Tool = {
         ...allPlaceholders
           .filter((name) => !barFields.has(name))
           .map((name) => {
-            const option = el('option', undefined, placeholderLabel(name));
+            const option = el('option', undefined, barLabel(name));
             option.value = name;
             return option;
           }),
@@ -279,7 +332,7 @@ export const referenceTool: Tool = {
       if (existing) return existing.input;
       const { field, input } = variableField(name);
       const remove = el('button', 'btn ref-var-remove', '\u00d7');
-      remove.title = `Clear ${placeholderLabel(name)} and remove it from this bar`;
+      remove.title = `Clear ${barLabel(name)} and remove it from this bar`;
       remove.setAttribute('aria-label', remove.title);
       remove.addEventListener('click', (event) => {
         // Inside a <label>: without this the click would refocus the input.
@@ -299,7 +352,7 @@ export const referenceTool: Tool = {
       if (!entry) return;
       entry.field.remove();
       barFields.delete(name);
-      varInputs.set(name, (varInputs.get(name) ?? []).filter((i) => i !== entry.input));
+      varInputs.set(name, (varInputs.get(name) ?? []).filter((i) => i.input !== entry.input));
       syncBar();
     }
 
@@ -351,7 +404,7 @@ export const referenceTool: Tool = {
       const any = picked.length > 0;
       setShown(tray, any);
       trayCount.textContent = `${picked.length} command${picked.length === 1 ? '' : 's'}`;
-      renderFilled(trayList, picked.join('\n'));
+      trayList.replaceChildren(...partNodes(fillParts(picked.join('\n'), shownValues)));
       if (!any && trayOpen) {
         trayOpen = false;
         trayToggle.textContent = 'Show';
@@ -406,11 +459,18 @@ export const referenceTool: Tool = {
 
         const head = el('summary', 'ref-summary-head');
         const heading = el('div', 'ref-heading');
-        heading.append(el('span', 'ref-title', section.title));
+        heading.append(view('span', 'ref-title', section.title));
         const count = sectionItemCount(section);
         heading.append(
           // The topic is the group heading above, so the tag carries the kind.
-          el('span', 'ref-tag', `${kindLabel(section.kind)} \u00b7 ${count} item${count === 1 ? '' : 's'}`),
+          // A copyAll sheet is a sequence run in order, so its rows are steps.
+          el(
+            'span',
+            'ref-tag',
+            `${kindLabel(section.kind)} \u00b7 ${count} ${section.copyAll ? 'step' : 'item'}${
+              count === 1 ? '' : 's'
+            }`,
+          ),
         );
         head.append(heading);
 
@@ -430,8 +490,8 @@ export const referenceTool: Tool = {
         panel.append(head);
 
         const body = el('div', 'ref-body');
-        if (section.description) body.append(el('p', 'ref-note', section.description));
-        const vars = variableFields(sectionPlaceholders(section));
+        if (section.description) body.append(view('p', 'ref-note', section.description));
+        const vars = variableFields(section);
         if (vars) body.append(vars);
 
         const rows: { row: HTMLElement; matches: (q: string) => boolean }[] = [];
@@ -445,12 +505,16 @@ export const referenceTool: Tool = {
             swatch.style.background = colorHex(entry.swatch) ?? 'transparent';
             line.append(swatch);
           }
+          if (section.copyAll && entry.command !== undefined) {
+            // Numbered from the sheet, not the filter: step 4 stays step 4.
+            line.append(el('span', 'ref-step', String(sectionCommands.length + 1)));
+          }
           line.append(
             entry.command !== undefined
-              ? filledView('code', undefined, entry.command)
-              : el('code', undefined, entry.text ?? ''),
+              ? view('code', undefined, entry.command, true)
+              : view('code', undefined, entry.text ?? ''),
           );
-          if (entry.description) line.append(el('span', 'desc', entry.description));
+          if (entry.description) line.append(view('span', 'desc', entry.description));
           if (entry.command !== undefined) {
             const cmd = entry.command;
             const add = el('button', 'btn ref-add', '+');
@@ -460,20 +524,26 @@ export const referenceTool: Tool = {
             line.append(add, copyButton('Copy', () => fillPlaceholders(cmd, values)));
             sectionCommands.push({ cmd, row: line });
           }
+          if (entry.expect) {
+            line.classList.add('ref-entry-noted');
+            const expect = el('div', 'ref-expect');
+            expect.append(el('strong', undefined, 'Look for: '), view('span', undefined, entry.expect));
+            line.append(expect);
+          }
           body.append(line);
-          rows.push({ row: line, matches: (q) => entryMatches(entry, q) });
+          rows.push({ row: line, matches: (q) => entryMatches(entry, q, fillShown) });
         }
 
         for (const snippet of section.snippets ?? []) {
           const card = el('div', 'ref-snippet');
           const snipHead = el('div', 'ref-snippet-head');
-          snipHead.append(el('strong', undefined, snippet.title));
+          snipHead.append(view('strong', undefined, snippet.title));
           snipHead.append(copyButton('Copy', () => fillPlaceholders(snippet.body, values)));
           card.append(snipHead);
-          if (snippet.description) card.append(el('span', 'desc', snippet.description));
-          card.append(filledView('pre', 'output', snippet.body));
+          if (snippet.description) card.append(view('span', 'desc', snippet.description));
+          card.append(view('pre', 'output', snippet.body, true));
           body.append(card);
-          rows.push({ row: card, matches: (q) => snippetMatches(snippet, q) });
+          rows.push({ row: card, matches: (q) => snippetMatches(snippet, q, fillShown) });
         }
 
         if (sectionCommands.length > 1) {

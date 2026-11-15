@@ -9,6 +9,7 @@ order: 7
 Draft, not verified on every release. received-routes only works when soft-reconfiguration is enabled for that neighbor. Run Stop debugging after the debug commands.
 
 `get router info bgp summary` - One line per neighbor: state, uptime, prefixes received
+> A number in the last column is the count of prefixes received from an established neighbor. A word there (Idle, Connect, Active) means the session is down.
 `get router info bgp neighbors` - Full detail for every neighbor, including the last error
 `get router info bgp network` - The BGP table, with the best path for each prefix marked
 `get router info bgp neighbors <neighbor-ip> advertised-routes` - What this unit is sending to a neighbor

@@ -105,7 +105,12 @@ carries the same split as hairline-separated groups.
   variable there to set it before opening any sheet, remove one with its
   **x**, or **Clear all**. Each sheet has a **Link** button that copies a
   `#/reference/<sheet id>` URL, which opens the page scrolled to that sheet
-  with it expanded.
+  with it expanded. Search also finds values you have typed in (apart from
+  secrets) and highlights every match. A "Copy all" sheet is a sequence, so
+  its rows are numbered steps, and any command can carry a **Look for** note
+  saying what its output should show. Fields are labelled, given an example
+  and lightly checked from a shared catalogue: an IP field warns about
+  something that is not an IP, but the value is still filled in.
   See
   [Adding reference content](#adding-reference-content).
 - **Templates**: fill in a site's details and get the whole build-out config.
@@ -201,8 +206,12 @@ order: 10                 # optional: lower sorts first, default 100
 Prose before the first command becomes the note under the title.
 
 `get vpn ipsec tunnel summary` - One line per tunnel
+> Optional: what to look for in the output of the command above
 - `diagnose vpn tunnel list` - Bullets work too
 `diagnose debug enable`
+
+## Variables
+- <tunnel-name> - Tunnel name - e.g. to-branch
 
 ### A config block
 
@@ -222,6 +231,17 @@ end
 - ```` ```commands ```` makes every line in the block its own row: handy for
   pasting a sequence you have no descriptions for
 - ```` ```colors ```` reads `<id> - <name>` rows and renders a swatch
+- a line starting with `>` straight after a command is shown under it as
+  **Look for**: what its output should say, or what to do next
+- with `copyAll: true` the commands are a sequence and are numbered as steps
+- every `<placeholder>` in a command or config block becomes a field. Its
+  label, example and type come from
+  [`content/reference-variables.md`](content/reference-variables.md), one
+  bullet per placeholder: `- <name> (type) - Label - e.g. example`. The type
+  (`ip`, `cidr`, `mask`, `port`, `number`) and the example are optional; a
+  placeholder that is not listed is labelled from its name. A sheet's own
+  `## Variables` list, in the same form, overrides the shared entry for that
+  sheet
 
 Markdown is inlined at build time, so the deployed page fetches nothing.
 A malformed sheet fails the build and the tests with the filename and the

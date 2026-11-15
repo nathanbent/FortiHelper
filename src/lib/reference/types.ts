@@ -41,6 +41,25 @@ export interface ReferenceEntry {
   description?: string;
   /** FortiGate color id: renders a swatch beside the row. */
   swatch?: number;
+  /** What to look for in the command's output, shown under the row. */
+  expect?: string;
+}
+
+/** What a variable holds, for a light sanity check on what is typed. */
+export const VARIABLE_TYPES = ['ip', 'cidr', 'mask', 'port', 'number'] as const;
+
+export type VariableType = (typeof VARIABLE_TYPES)[number];
+
+/** A documented placeholder: what its field is called and what goes in it. */
+export interface ReferenceVariable {
+  /** Placeholder as it appears in commands, including angle brackets. */
+  name: string;
+  /** Field label. */
+  label: string;
+  /** Example value, shown as the field's hint. */
+  example?: string;
+  /** When set, the value is checked against this shape (warning only). */
+  type?: VariableType;
 }
 
 /** A multi-line config block, copied as a whole. */
@@ -62,6 +81,8 @@ export interface ReferenceSection {
   description?: string;
   entries?: ReferenceEntry[];
   snippets?: ReferenceSnippet[];
+  /** This sheet's own `## Variables`, overriding the shared catalogue. */
+  variables?: ReferenceVariable[];
   /**
    * When true, the section's commands form a sequence and the UI offers a
    * "Copy all" button that copies every `command` joined by newlines.
