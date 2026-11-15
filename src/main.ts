@@ -1,6 +1,7 @@
 import './styles.css';
 import type { Tool } from './types';
 import { el } from './ui/components';
+import { helpPanel } from './ui/help';
 import { applyTheme, loadTheme, themePicker } from './ui/theme';
 import { objectHelperTool } from './ui/object-helper';
 import { homeTool } from './ui/home';
@@ -74,6 +75,8 @@ function render() {
   main.replaceChildren();
   const heading = el('div');
   heading.append(el('h2', undefined, tool.title), el('p', 'tool-desc', tool.description));
+  const help = helpPanel(tool.id);
+  if (help) heading.append(help);
   main.append(heading);
   const container = el('div');
   main.append(container);
