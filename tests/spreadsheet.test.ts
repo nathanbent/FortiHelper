@@ -128,9 +128,9 @@ describe('detectSpreadsheetMapping', () => {
   });
 
   it('prefers an IP/CIDR column over an FQDN-shaped interface column', () => {
-    // "x1.4" etc. validate as FQDNs, but real addresses must win the vote.
+    // "x1.20" etc. validate as FQDNs, but real addresses must win the vote.
     const t = table(
-      ['Data-VLAN\tx1.4\t172.17.4.1/24\tVLAN4', 'Mgmt-VLAN\tx1.254\t10.0.254.1/24\tVLAN254'].join(
+      ['Data-VLAN\tx1.20\t10.2.20.1/24\tVLAN20', 'Mgmt-VLAN\tx1.40\t10.2.40.1/24\tVLAN40'].join(
         '\n',
       ) + '\n',
     );
@@ -226,9 +226,9 @@ describe('generateFromRecords with spreadsheet input', () => {
     // masked off so the objects describe the VLAN subnets.
     const t = table(
       [
-        'Legacy-VLAN\tx1.1\t172.16.1.2/16\tVLAN1',
-        'Data-VLAN\tx1.4\t172.17.4.1/24\tVLAN4',
-        'Guest-VLAN\tx1.250\t10.250.0.1/19\tVLAN250',
+        'Legacy-VLAN\tx1.10\t10.1.1.2/16\tVLAN10',
+        'Data-VLAN\tx1.20\t10.2.20.1/24\tVLAN20',
+        'Guest-VLAN\tx1.30\t10.3.0.1/19\tVLAN30',
       ].join('\n') + '\n',
     );
     const mapping = detectSpreadsheetMapping(t);
@@ -240,12 +240,12 @@ describe('generateFromRecords with spreadsheet input', () => {
     });
 
     expect(result.output).toContain('edit "Prefix-Legacy-VLAN"');
-    expect(result.output).toContain('set subnet 172.16.0.0 255.255.0.0');
+    expect(result.output).toContain('set subnet 10.1.0.0 255.255.0.0');
     expect(result.output).toContain('edit "Prefix-Data-VLAN"');
-    expect(result.output).toContain('set subnet 172.17.4.0 255.255.255.0');
-    expect(result.output).toContain('set comment "VLAN4"');
+    expect(result.output).toContain('set subnet 10.2.20.0 255.255.255.0');
+    expect(result.output).toContain('set comment "VLAN20"');
     expect(result.output).toContain('edit "Prefix-Guest-VLAN"');
-    expect(result.output).toContain('set subnet 10.250.0.0 255.255.224.0');
+    expect(result.output).toContain('set subnet 10.3.0.0 255.255.224.0');
     expect(result.output).not.toContain('x1.'); // interface column ignored
     expect(result.stats.writtenDirectIp).toBe(3);
     expect(result.warnings).toEqual([]);
@@ -259,10 +259,10 @@ describe('generateFromRecords with spreadsheet input', () => {
     const t = table(
       [
         'Object Name\tuuid\tDetails\tType',
-        '*WLAN-CONTROLLERS\t00000000-0000-0241-0100-2cb8ede26e40\t10.99.0.20 - 10.99.0.37\trange',
-        'Mgmt Net\t00000000-0000-0240-0100-2cb8ede26e40\t10.52.128.0/255.255.255.0\tnetwork',
-        'Web Server (192.0.2.85)\t81392e86-9c03-111c-0100-2cb8ede26e40\t192.0.2.85/255.255.255.255\thost',
-        'Default Gateway\t478524ad-a69a-5949-0100-2cb8ede26e40\t0.0.0.0/255.255.255.255\thost',
+        '*WLAN-CONTROLLERS\t00000000-0000-0241-0100-00005e005301\t198.51.100.20 - 198.51.100.37\trange',
+        'Mgmt Net\t00000000-0000-0240-0100-00005e005301\t203.0.113.0/255.255.255.0\tnetwork',
+        'Web Server (192.0.2.85)\t11111111-2222-3333-0100-00005e005301\t192.0.2.85/255.255.255.255\thost',
+        'Default Gateway\taaaaaaaa-bbbb-cccc-0100-00005e005301\t0.0.0.0/255.255.255.255\thost',
       ].join('\n') + '\n',
     );
     const mapping = detectSpreadsheetMapping(t);
@@ -277,10 +277,10 @@ describe('generateFromRecords with spreadsheet input', () => {
     expect(warnings).toEqual([]);
     // Range with spaces around the dash -> iprange object.
     expect(result.output).toContain('edit "Prefix-*WLAN-CONTROLLERS"');
-    expect(result.output).toContain('set type iprange\nset start-ip 10.99.0.20\nset end-ip 10.99.0.37');
+    expect(result.output).toContain('set type iprange\nset start-ip 198.51.100.20\nset end-ip 198.51.100.37');
     // Netmask notation -> subnet with the mask as given.
     expect(result.output).toContain('edit "Prefix-Mgmt Net"');
-    expect(result.output).toContain('set subnet 10.52.128.0 255.255.255.0');
+    expect(result.output).toContain('set subnet 203.0.113.0 255.255.255.0');
     // /32 host in netmask notation; FortiOS rejects parentheses in names,
     // so the name is sanitized (with a warning carrying the mapping).
     expect(result.output).toContain('edit "Prefix-Web Server 192.0.2.85"');
@@ -289,7 +289,7 @@ describe('generateFromRecords with spreadsheet input', () => {
     expect(result.output).not.toContain('set subnet 0.0.0.0 255.255.255.255');
     // The Type column lands in the comment; the uuid column is ignored.
     expect(result.output).toContain('set comment "range"');
-    expect(result.output).not.toContain('2cb8ede26e40');
+    expect(result.output).not.toContain('00005e005301');
     expect(result.warnings).toEqual([
       {
         message:
