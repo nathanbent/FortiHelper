@@ -6,6 +6,7 @@ this file, so keep the shape: a `## YYYY-MM-DD` heading per day, then one
 
 ## 2026-11-15
 
+- Reference: the FortiSwitch rename block now takes the switch's current ID, which is the serial number only until the first rename.
 - Reference: add your own sheet by pasting markdown or loading a file. It is kept in your browser only and behaves like a built-in sheet.
 - Reference: a sheet for pre-provisioning and grouping switches and APs, and the switch display-name block corrected to FortiOS 7.2 and earlier.
 - About page with version and build info, and this changelog, linked from the nav and the footer.
