@@ -1,6 +1,7 @@
 import type { Warning } from '../../types';
 import { apModelFromSerial } from './devices';
 import type { Device, DeviceKind } from './devices';
+import type { ExistingAp, ExistingGroup, ExistingState, ExistingSwitch } from './state';
 
 /**
  * FortiGate config for a list of FortiSwitches and FortiAPs: one
@@ -29,8 +30,25 @@ export const MAX_NAME = 35;
 export const MAX_SWITCH_DESCRIPTION = 63;
 export const MAX_AP_LOCATION = 35;
 export const MAX_GROUP_NAME = 35;
-/** A switch ID was 16 characters when FortiOS 7.4.0 made it renameable; later builds take 35. */
+/** A named switch ID: 16 characters in the FortiOS 7.4 CLI reference; later builds take 35. */
 export const MAX_SWITCH_ID_EARLY = 16;
+
+/**
+ * How a switch gets its name.
+ *
+ * - `set-name`:     `edit <serial>` + `set name`. FortiOS 7.2 and earlier;
+ *                   7.4 dropped `name` and made the ID itself the name.
+ * - `rename`:       `rename <serial> to <name>`, for switches the FortiGate
+ *                   already lists. FortiOS 7.4 and later.
+ * - `preconfigure`: `edit <name>` + `set sn <serial>`, for switches that
+ *                   have not connected yet. FortiOS 7.4 and later.
+ * - `none`:         keep the serial as the ID and set no name.
+ *
+ * When the FortiGate's current config is supplied, `rename` and
+ * `preconfigure` mean the same thing: each switch is renamed if it is
+ * there and pre-configured if it is not.
+ */
+export type SwitchNaming = 'set-name' | 'rename' | 'preconfigure' | 'none';
 
 /** Serials per `append members` line, so no pasted line runs long. */
 const MEMBERS_PER_LINE = 8;
@@ -39,7 +57,7 @@ export interface OnboardingOptions {
   /** Devices per batch; 0 puts everything in one. Default 50. */
   batchSize?: number;
 
-  /** Emit `set name` from the Name column. Default true. */
+  /** Use the Name column. Default true. */
   setName?: boolean;
   /** Emit the Comments column: `description` on a switch, `location` on an AP. Default true. */
   setComment?: boolean;
@@ -53,14 +71,8 @@ export interface OnboardingOptions {
    */
   memberMode?: 'append' | 'set';
 
-  /**
-   * Rename each switch from its serial number to its Name instead of
-   * setting `name`: `rename "<serial>" to "<name>"`, with the rest of the
-   * settings applied under the new ID. For switches the FortiGate already
-   * lists, on FortiOS 7.4 or later; FortiAPs always keep their serial as
-   * their ID. Default false.
-   */
-  renameSwitches?: boolean;
+  /** How a switch gets its name. FortiAPs always use `set name`. Default 'rename'. */
+  switchNaming?: SwitchNaming;
   /** `set fsw-wan1-admin ...`. Default 'authorize'. */
   switchAuth?: AuthAction;
   /** FortiLink interface: `set fsw-wan1-peer` and the group's `set fortilink`. Default 'fortilink'. */
@@ -84,6 +96,24 @@ export interface OnboardingOptions {
   apGroup?: string;
 }
 
+/**
+ * Where a device stands against the FortiGate's current config.
+ *
+ * - `new`:    not on the FortiGate (or no current config was supplied)
+ * - `change`: there, but something in the list differs
+ * - `done`:   there, and already as the list wants it
+ */
+export type DeviceStatus = 'new' | 'change' | 'done';
+
+export interface DevicePlan {
+  device: Device;
+  status: DeviceStatus;
+  /** What will be set, for a `change`: 'name', 'description', 'group', ... */
+  changes: string[];
+  /** Batch the device's config is in; null when it is `done`. */
+  batch: number | null;
+}
+
 export interface Batch {
   /** 1-based. */
   index: number;
@@ -92,10 +122,21 @@ export interface Batch {
   output: string;
 }
 
+/** Something on the FortiGate that the list does not mention. */
+export interface Unlisted {
+  kind: DeviceKind;
+  id: string;
+  serial: string;
+}
+
 export interface OnboardingResult {
   batches: Batch[];
+  /** Every device of the list, in input order, with its status. */
+  plan: DevicePlan[];
+  /** Switches and APs on the FortiGate that are not in the list. */
+  unlisted: Unlisted[];
   warnings: Warning[];
-  stats: { switches: number; aps: number };
+  stats: { switches: number; aps: number; fresh: number; changed: number; done: number };
 }
 
 function q(value: string): string {
@@ -113,31 +154,48 @@ function kindLabel(kind: DeviceKind): string {
 /** A device with everything that depends on the options worked out. */
 interface Planned {
   device: Device;
-  comment: string;
   group: string;
   profile: string;
-  /** The `edit` key: the serial, or the name a switch is renamed to. */
+  /** The `edit` key: the serial, or a switch's name. */
   id: string;
-  /** True when the entry is renamed from its serial to `id`. */
-  renamed: boolean;
+  /** The ID to rename from, when the entry is renamed to `id`. */
+  renameFrom: string | null;
+  /** `set` lines for the entry, unindented; only what is not already so. */
+  lines: string[];
+  /** True when the device still has to be added to `group`. */
+  joinGroup: boolean;
+  status: DeviceStatus;
+  changes: string[];
 }
+
+/** One wanted setting: its `set` line, its label, and the value in place now. */
+type Want = [line: string, label: string, current: string | null, wanted: string];
+
+const sameText = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase();
 
 /**
  * Generate the batched config. Warnings about a device carry its input
  * row; the device list itself is validated by `readDevices`.
+ *
+ * With `existing` (the FortiGate's current config, from
+ * `parseExistingState`), only what differs is emitted: a device already as
+ * the list wants it is left out, one that differs gets just the lines that
+ * differ, and a group only gains the members it is missing. A section that
+ * was not supplied is treated as unknown, so everything for it is emitted.
  */
 export function generateOnboarding(
   devices: Device[],
   options: OnboardingOptions = {},
+  existing: ExistingState | null = null,
 ): OnboardingResult {
-  const o = {
+  const o: Resolved = {
     batchSize: options.batchSize ?? 50,
     setName: options.setName ?? true,
     setComment: options.setComment ?? true,
     bulkComment: (options.bulkComment ?? '').trim(),
     keyInComment: options.keyInComment ?? false,
     memberMode: options.memberMode ?? 'append',
-    renameSwitches: options.renameSwitches ?? false,
+    switchNaming: options.switchNaming ?? 'rename',
     switchAuth: options.switchAuth ?? 'authorize',
     fortilink: (options.fortilink ?? 'fortilink').trim(),
     switchGroup: (options.switchGroup ?? '').trim(),
@@ -147,6 +205,7 @@ export function generateOnboarding(
     apProfile: (options.apProfile ?? '').trim(),
     apGroup: (options.apGroup ?? '').trim(),
   };
+  const naming: SwitchNaming = o.setName ? o.switchNaming : 'none';
   const warnings: Warning[] = [];
 
   const hasSwitches = devices.some((d) => d.kind === 'switch');
@@ -156,6 +215,27 @@ export function generateOnboarding(
         'no FortiLink interface set: a switch that is not connected yet cannot be pre-authorized without one',
     });
   }
+  if (
+    existing?.namedSwitchIds &&
+    naming === 'set-name' &&
+    devices.some((d) => d.kind === 'switch' && d.name)
+  ) {
+    warnings.push({
+      message:
+        'this FortiGate keeps switch names as IDs (FortiOS 7.4 or later), where "set name" does not exist: change Switch names to rename',
+    });
+  }
+
+  const switchBySerial = new Map<string, ExistingSwitch>();
+  for (const sw of existing?.switches ?? []) switchBySerial.set(sw.serial, sw);
+  const apBySerial = new Map<string, ExistingAp>();
+  for (const ap of existing?.aps ?? []) apBySerial.set(ap.serial, ap);
+  const knowSwitches = !!existing?.switches;
+  const knowAps = !!existing?.aps;
+
+  /** IDs taken on the FortiGate or by an earlier row, lower-cased. */
+  const takenIds = new Map<string, string>();
+  for (const sw of existing?.switches ?? []) takenIds.set(sw.id.toLowerCase(), sw.serial);
 
   // ---- per-device values ----
   const planned: Planned[] = devices.map((device) => {
@@ -177,34 +257,7 @@ export function generateOnboarding(
       }
     }
 
-    let id = device.serial;
-    let renamed = false;
-    if (o.renameSwitches && !isAp) {
-      if (!device.name) {
-        warnings.push({
-          line: device.row,
-          message: `${device.serial}: no name to rename it to, so it keeps its serial number as its ID`,
-        });
-      } else if (device.name.toUpperCase() !== device.serial) {
-        id = device.name;
-        renamed = true;
-        if (!/^[A-Za-z0-9_-]+$/.test(id)) {
-          warnings.push({
-            line: device.row,
-            message: `${device.serial}: "${id}" may be refused as a switch ID: FortiOS documents letters, digits, - and _ only`,
-          });
-        }
-        if (id.length > MAX_SWITCH_ID_EARLY && id.length <= MAX_NAME) {
-          warnings.push({
-            line: device.row,
-            kind: 'fix',
-            message: `${device.serial}: "${id}" is ${id.length} characters, fine on current FortiOS (35), but 7.4.0 allowed only ${MAX_SWITCH_ID_EARLY} in a switch ID`,
-          });
-        }
-      }
-    }
-
-    if ((o.setName || renamed) && device.name.length > MAX_NAME) {
+    if (o.setName && device.name.length > MAX_NAME) {
       warnings.push({
         line: device.row,
         message: `${device.serial}: name "${device.name}" is ${device.name.length} characters; the limit is ${MAX_NAME}`,
@@ -229,24 +282,144 @@ export function generateOnboarding(
     }
 
     const group = device.group || (isAp ? o.apGroup : o.switchGroup);
-    return { device, comment, group, profile, id, renamed };
+    const wants: Want[] = [];
+    let id = device.serial;
+    let renameFrom: string | null = null;
+    let known = false;
+    let fresh = true;
+
+    if (isAp) {
+      const now = apBySerial.get(device.serial) ?? null;
+      known = knowAps;
+      fresh = now === null;
+      if (o.apAuth !== 'keep') {
+        const v = AUTH_VALUE[o.apAuth];
+        wants.push([`set admin ${v}`, 'approval', now?.admin ?? null, v]);
+      }
+      if (o.setName && device.name) {
+        wants.push([`set name "${q(device.name)}"`, 'name', now?.name ?? null, device.name]);
+      }
+      if (comment) {
+        wants.push([`set location "${q(comment)}"`, 'location', now?.location ?? null, comment]);
+      }
+      if (profile) {
+        wants.push([`set wtp-profile "${q(profile)}"`, 'profile', now?.profile ?? null, profile]);
+      }
+    } else {
+      const now = switchBySerial.get(device.serial) ?? null;
+      known = knowSwitches;
+      fresh = now === null;
+      if (now) id = now.id;
+
+      const named = naming === 'rename' || naming === 'preconfigure';
+      // A row with no name simply keeps the ID it has.
+      if (named && device.name && !sameText(device.name, id)) {
+        const holder = takenIds.get(device.name.toLowerCase());
+        if (holder !== undefined && holder !== device.serial) {
+          warnings.push({
+            line: device.row,
+            message: `${device.serial}: "${device.name}" is already the ID of ${holder}, so it keeps ${sameText(id, device.serial) ? 'its serial number as its' : `"${id}" as its`} ID`,
+          });
+        } else {
+          if (!/^[A-Za-z0-9_-]+$/.test(device.name)) {
+            warnings.push({
+              line: device.row,
+              message: `${device.serial}: "${device.name}" may be refused as a switch ID: FortiOS documents letters, digits, - and _ only`,
+            });
+          }
+          if (device.name.length > MAX_SWITCH_ID_EARLY && device.name.length <= MAX_NAME) {
+            warnings.push({
+              line: device.row,
+              kind: 'fix',
+              message: `${device.serial}: "${device.name}" is ${device.name.length} characters, fine on current FortiOS (35), but FortiOS 7.4 documents ${MAX_SWITCH_ID_EARLY} for a switch ID`,
+            });
+          }
+          // Known to be there, or assumed to be (rename without a current
+          // config): rename it. Otherwise create it under its name.
+          const there = knowSwitches ? now !== null : naming === 'rename';
+          if (there) renameFrom = id;
+          else wants.push([`set sn "${q(device.serial)}"`, 'serial', null, device.serial]);
+          id = device.name;
+        }
+      }
+      takenIds.set(id.toLowerCase(), device.serial);
+
+      if (naming === 'set-name' && device.name) {
+        wants.push([`set name "${q(device.name)}"`, 'name', now?.name ?? null, device.name]);
+      }
+      if (comment) {
+        wants.push([
+          `set description "${q(comment)}"`,
+          'description',
+          now?.description ?? null,
+          comment,
+        ]);
+      }
+      // The peer has to be known before a switch that has never connected
+      // can be authorized.
+      if (o.fortilink) {
+        wants.push([
+          `set fsw-wan1-peer "${q(o.fortilink)}"`,
+          'FortiLink',
+          now?.peer ?? null,
+          o.fortilink,
+        ]);
+      }
+      if (o.switchAuth !== 'keep') {
+        const v = AUTH_VALUE[o.switchAuth];
+        wants.push([`set fsw-wan1-admin ${v}`, 'approval', now?.admin ?? null, v]);
+      }
+      if (o.switchProfile) {
+        wants.push([
+          `set switch-profile "${q(o.switchProfile)}"`,
+          'switch profile',
+          now?.switchProfile ?? null,
+          o.switchProfile,
+        ]);
+      }
+      if (o.accessProfile) {
+        wants.push([
+          `set access-profile "${q(o.accessProfile)}"`,
+          'access profile',
+          now?.accessProfile ?? null,
+          o.accessProfile,
+        ]);
+      }
+    }
+
+    const differing = wants.filter(([, , current, wanted]) => current === null || current !== wanted);
+    const changes = differing.map(([, label]) => label);
+    if (renameFrom !== null) changes.unshift('rename');
+    const status: DeviceStatus = !known || fresh ? 'new' : 'change';
+    return {
+      device,
+      group,
+      profile,
+      id,
+      renameFrom,
+      lines: differing.map(([line]) => line),
+      joinGroup: group !== '',
+      status,
+      changes,
+    };
   });
 
-  // Two switches renamed to one ID would collapse into a single entry.
-  const renamedTo = new Map<string, Planned>();
+  // ---- group membership against what is there ----
+  const groupIndex = (groups: ExistingGroup[] | null | undefined): Map<string, ExistingGroup> | null =>
+    groups ? new Map(groups.map((g) => [g.name.toLowerCase(), g])) : null;
+  const switchGroups = groupIndex(existing?.switchGroups);
+  const apGroups = groupIndex(existing?.apGroups);
   for (const p of planned) {
-    if (!p.renamed) continue;
-    const first = renamedTo.get(p.id.toLowerCase());
-    if (first) {
-      warnings.push({
-        line: p.device.row,
-        message: `${p.device.serial}: "${p.id}" is already the new ID of ${first.device.serial}, so it keeps its serial number as its ID`,
-      });
-      p.id = p.device.serial;
-      p.renamed = false;
-    } else {
-      renamedTo.set(p.id.toLowerCase(), p);
-    }
+    if (!p.group) continue;
+    const index = p.device.kind === 'ap' ? apGroups : switchGroups;
+    const members = index?.get(p.group.toLowerCase())?.members ?? [];
+    const names = [p.id, p.device.serial, p.renameFrom ?? ''].filter(Boolean);
+    if (index && members.some((m) => names.some((n) => sameText(m, n)))) p.joinGroup = false;
+    else p.changes.push('group');
+  }
+  for (const p of planned) {
+    if (p.status === 'change' && p.changes.length === 0) p.status = 'done';
+    if (p.status === 'new') p.changes = [];
   }
 
   // ---- group checks ----
@@ -263,6 +436,8 @@ export function generateOnboarding(
     if (p.device.kind === 'ap') {
       const models = apGroupModels.get(p.group) ?? new Set<string>();
       models.add(apModelFromSerial(p.device.serial) ?? '?');
+      const platform = apGroups?.get(p.group.toLowerCase())?.platform;
+      if (platform) models.add(platform);
       apGroupModels.set(p.group, models);
     }
   }
@@ -274,17 +449,21 @@ export function generateOnboarding(
     }
   }
 
-  // ---- batches ----
-  const size = Number.isInteger(o.batchSize) && o.batchSize > 0 ? o.batchSize : planned.length || 1;
+  // ---- batches: only devices with something left to do ----
+  const todo = planned.filter((p) => p.status !== 'done');
+  const size = Number.isInteger(o.batchSize) && o.batchSize > 0 ? o.batchSize : todo.length || 1;
   const batches: Batch[] = [];
-  for (let start = 0; start < planned.length; start += size) {
-    const slice = planned.slice(start, start + size);
+  const batchOf = new Map<Planned, number>();
+  for (let start = 0; start < todo.length; start += size) {
+    const slice = todo.slice(start, start + size);
+    const index = batches.length + 1;
+    for (const p of slice) batchOf.set(p, index);
     batches.push({
-      index: batches.length + 1,
+      index,
       // With the group and profile each device actually got, so the
       // inventory export records what was configured.
       devices: slice.map((p) => ({ ...p.device, group: p.group, profile: p.profile })),
-      output: emitBatch(slice, o) + '\n',
+      output: emitBatch(slice, o, { switchGroups, apGroups }) + '\n',
     });
   }
 
@@ -307,20 +486,46 @@ export function generateOnboarding(
     }
   }
 
+  // ---- what the FortiGate has that the list does not ----
+  const listed = new Set(devices.map((d) => d.serial));
+  const unlisted: Unlisted[] = [
+    ...(existing?.switches ?? [])
+      .filter((sw) => !listed.has(sw.serial))
+      .map((sw): Unlisted => ({ kind: 'switch', id: sw.id, serial: sw.serial })),
+    ...(existing?.aps ?? [])
+      .filter((ap) => !listed.has(ap.serial))
+      .map((ap): Unlisted => ({ kind: 'ap', id: ap.serial, serial: ap.serial })),
+  ];
+
   return {
     batches,
+    plan: planned.map((p) => ({
+      device: { ...p.device, group: p.group, profile: p.profile },
+      status: p.status,
+      changes: p.changes,
+      batch: batchOf.get(p) ?? null,
+    })),
+    unlisted,
     warnings,
     stats: {
       switches: devices.filter((d) => d.kind === 'switch').length,
       aps: devices.filter((d) => d.kind === 'ap').length,
+      fresh: planned.filter((p) => p.status === 'new').length,
+      changed: planned.filter((p) => p.status === 'change').length,
+      done: planned.filter((p) => p.status === 'done').length,
     },
   };
 }
 
 type Resolved = Required<OnboardingOptions>;
 
-function memberLines(mode: 'append' | 'set', field: string, serials: string[]): string[] {
-  const quoted = serials.map((s) => `"${q(s)}"`);
+interface KnownGroups {
+  switchGroups: Map<string, ExistingGroup> | null;
+  apGroups: Map<string, ExistingGroup> | null;
+}
+
+function memberLines(mode: 'append' | 'set', field: string, ids: string[]): string[] {
+  const quoted = ids.map((s) => `"${q(s)}"`);
   if (mode === 'set') return [`set ${field} ${quoted.join(' ')}`];
   const lines: string[] = [];
   for (let i = 0; i < quoted.length; i += MEMBERS_PER_LINE) {
@@ -329,86 +534,76 @@ function memberLines(mode: 'append' | 'set', field: string, serials: string[]): 
   return lines;
 }
 
-/** Group name -> member serials, in first-seen order. */
-function groupsOf(items: Planned[]): Map<string, string[]> {
-  const groups = new Map<string, string[]>();
+/** Group name -> the IDs still to be added to it, in first-seen order. */
+function groupsOf(items: Planned[]): Map<string, Planned[]> {
+  const groups = new Map<string, Planned[]>();
   for (const p of items) {
-    if (!p.group) continue;
+    if (!p.group || !p.joinGroup) continue;
     const members = groups.get(p.group) ?? [];
-    members.push(p.id);
+    members.push(p);
     groups.set(p.group, members);
   }
   return groups;
 }
 
-function emitBatch(items: Planned[], o: Resolved): string {
+function emitBatch(items: Planned[], o: Resolved, known: KnownGroups): string {
   const lines: string[] = [];
   const switches = items.filter((p) => p.device.kind === 'switch');
   const aps = items.filter((p) => p.device.kind === 'ap');
 
-  if (switches.length) {
-    lines.push('config switch-controller managed-switch');
+  /** One `config <path>` block of `edit` entries, skipped when nothing is in it. */
+  const entryBlock = (path: string, entries: Planned[], renames: boolean): void => {
+    const body: string[] = [];
     // Renames first, so every edit below finds its entry under the new ID.
-    for (const p of switches) {
-      if (p.renamed) lines.push(indent(1, `rename "${q(p.device.serial)}" to "${q(p.id)}"`));
+    if (renames) {
+      for (const p of entries) {
+        if (p.renameFrom !== null) {
+          body.push(indent(1, `rename "${q(p.renameFrom)}" to "${q(p.id)}"`));
+        }
+      }
     }
-    for (const p of switches) {
-      lines.push(indent(1, `edit "${q(p.id)}"`));
-      if (o.setName && p.device.name && !p.renamed) {
-        lines.push(indent(2, `set name "${q(p.device.name)}"`));
+    for (const p of entries) {
+      if (!p.lines.length) continue;
+      body.push(indent(1, `edit "${q(p.id)}"`));
+      for (const line of p.lines) body.push(indent(2, line));
+      body.push(indent(1, 'next'));
+    }
+    if (body.length) lines.push(`config ${path}`, ...body, 'end');
+  };
+
+  entryBlock('switch-controller managed-switch', switches, true);
+  const switchGroups = groupsOf(switches);
+  if (switchGroups.size) {
+    lines.push('config switch-controller switch-group');
+    for (const [name, members] of switchGroups) {
+      lines.push(indent(1, `edit "${q(name)}"`));
+      const now = known.switchGroups?.get(name.toLowerCase());
+      if (o.fortilink && now?.fortilink !== o.fortilink) {
+        lines.push(indent(2, `set fortilink "${q(o.fortilink)}"`));
       }
-      if (p.comment) lines.push(indent(2, `set description "${q(p.comment)}"`));
-      // The peer has to be known before a switch that has never connected
-      // can be authorized.
-      if (o.fortilink) lines.push(indent(2, `set fsw-wan1-peer "${q(o.fortilink)}"`));
-      if (o.switchAuth !== 'keep') {
-        lines.push(indent(2, `set fsw-wan1-admin ${AUTH_VALUE[o.switchAuth]}`));
-      }
-      if (o.switchProfile) lines.push(indent(2, `set switch-profile "${q(o.switchProfile)}"`));
-      if (o.accessProfile) lines.push(indent(2, `set access-profile "${q(o.accessProfile)}"`));
+      const ids = members.map((p) => p.id);
+      for (const l of memberLines(o.memberMode, 'members', ids)) lines.push(indent(2, l));
       lines.push(indent(1, 'next'));
     }
     lines.push('end');
-
-    const groups = groupsOf(switches);
-    if (groups.size) {
-      lines.push('config switch-controller switch-group');
-      for (const [name, serials] of groups) {
-        lines.push(indent(1, `edit "${q(name)}"`));
-        if (o.fortilink) lines.push(indent(2, `set fortilink "${q(o.fortilink)}"`));
-        for (const l of memberLines(o.memberMode, 'members', serials)) lines.push(indent(2, l));
-        lines.push(indent(1, 'next'));
-      }
-      lines.push('end');
-    }
   }
 
-  if (aps.length) {
-    lines.push('config wireless-controller wtp');
-    for (const p of aps) {
-      lines.push(indent(1, `edit "${q(p.device.serial)}"`));
-      if (o.apAuth !== 'keep') lines.push(indent(2, `set admin ${AUTH_VALUE[o.apAuth]}`));
-      if (o.setName && p.device.name) lines.push(indent(2, `set name "${q(p.device.name)}"`));
-      if (p.comment) lines.push(indent(2, `set location "${q(p.comment)}"`));
-      if (p.profile) lines.push(indent(2, `set wtp-profile "${q(p.profile)}"`));
+  entryBlock('wireless-controller wtp', aps, false);
+  // After the wtp block: a group can only list APs that already exist.
+  const apGroups = groupsOf(aps);
+  if (apGroups.size) {
+    lines.push('config wireless-controller wtp-group');
+    for (const [name, members] of apGroups) {
+      lines.push(indent(1, `edit "${q(name)}"`));
+      // The platform has to be set before members of that model go in.
+      const model = apModelFromSerial(members[0].device.serial);
+      const now = known.apGroups?.get(name.toLowerCase());
+      if (model && now?.platform !== model) lines.push(indent(2, `set platform-type ${model}`));
+      const ids = members.map((p) => p.device.serial);
+      for (const l of memberLines(o.memberMode, 'wtps', ids)) lines.push(indent(2, l));
       lines.push(indent(1, 'next'));
     }
     lines.push('end');
-
-    // After the wtp block: a group can only list APs that already exist.
-    const groups = groupsOf(aps);
-    if (groups.size) {
-      lines.push('config wireless-controller wtp-group');
-      for (const [name, serials] of groups) {
-        lines.push(indent(1, `edit "${q(name)}"`));
-        // The platform has to be set before members of that model go in.
-        const model = apModelFromSerial(serials[0]);
-        if (model) lines.push(indent(2, `set platform-type ${model}`));
-        for (const l of memberLines(o.memberMode, 'wtps', serials)) lines.push(indent(2, l));
-        lines.push(indent(1, 'next'));
-      }
-      lines.push('end');
-    }
   }
 
   return lines.join('\n');
@@ -430,7 +625,7 @@ function csvCell(value: string): string {
  * The device list as CSV, with the batch each device landed in: the
  * record of what was added, FortiCloud keys included.
  */
-export function inventoryCsv(batches: Batch[]): string {
+export function inventoryCsv(batches: Batch[], done: Device[] = []): string {
   const rows = [['Batch', 'Type', 'Serial Number', 'Name', 'Comments', 'FortiCloud Key', 'Group', 'Profile']];
   for (const b of batches) {
     for (const d of b.devices) {
@@ -445,6 +640,10 @@ export function inventoryCsv(batches: Batch[]): string {
         d.profile,
       ]);
     }
+  }
+  // Devices the FortiGate already had as wanted are in no batch.
+  for (const d of done) {
+    rows.push(['done', kindLabel(d.kind), d.serial, d.name, d.comment, d.cloudKey, d.group, d.profile]);
   }
   return rows.map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
 }

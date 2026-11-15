@@ -1015,3 +1015,5 @@ mark.ref-filled.ref-hit { padding: 0 0.15em; }
 }
 
 .ref-json { font-size: 0.75rem; color: var(--secondary); }
+
+.device-table tr.device-done td { color: var(--muted); }
