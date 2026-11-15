@@ -8,7 +8,7 @@ One entry per line: an FQDN, an IP, a CIDR or an IP range, such as `www.example.
 CLI to paste into a console session, with options for name prefixes, comments, colors and interfaces. Anything the tool corrected on its own is listed under Auto-corrected, and fixes it could make are offered under Suggested fixes.
 
 ## Limits
-IPv4 only: an IPv6 entry is reported and left out. Nothing checks your device, so an object that already exists with the same name is modified when you paste.
+IPv4 only: an IPv6 entry is reported and left out. Nothing checks your device: pasting changes an existing object with the same name and replaces the members of an existing group.
 
 Resolved-IP objects are off by default. Turning them on sends each FQDN to a public DNS-over-HTTPS resolver (Cloudflare or Google), and the addresses are a snapshot from the moment of the lookup.
 

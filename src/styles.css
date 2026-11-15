@@ -182,6 +182,13 @@ details.page-help > summary:focus-visible {
 
 .panel + .panel { margin-top: 1.25rem; }
 
+/* What pasting the output does to a device: always visible, above the output. */
+.paste-note {
+  margin: -0.25rem 0 0.75rem;
+  color: var(--secondary);
+  font-size: 0.85rem;
+}
+
 textarea.tool-input {
   width: 100%;
   min-height: 220px;
