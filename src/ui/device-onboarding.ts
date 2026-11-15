@@ -8,9 +8,11 @@ import {
   generateOnboarding,
   inventoryCsv,
   joinBatches,
+  parseExistingState,
   parseDeviceTable,
   readDevices,
   readXlsx,
+  STATE_COMMANDS,
   rowsToTsv,
   templateCsv,
 } from '../lib/device-onboarding';
@@ -20,7 +22,9 @@ import type {
   DeviceColumns,
   DeviceField,
   DeviceKind,
+  DevicePlan,
   OnboardingOptions,
+  SwitchNaming,
   XlsxSheet,
 } from '../lib/device-onboarding';
 
@@ -70,7 +74,7 @@ export const deviceOnboardingTool: Tool = {
       bulkComment: '',
       keyInComment: false,
       memberMode: 'append',
-      renameSwitches: false,
+      switchNaming: 'set-name',
       switchAuth: 'authorize',
       fortilink: 'fortilink',
       switchGroup: '',
@@ -98,6 +102,9 @@ export const deviceOnboardingTool: Tool = {
     let columns: DeviceColumns = detectDeviceColumns({ rows: [], width: 0 });
     let tableWidth = 0;
     let batches: Batch[] = [];
+    let plan: DevicePlan[] = [];
+    /** Pasted `show` output from the FortiGate, to skip what is already done. */
+    let stateText = '';
     /** Outputs already copied, so a batch stays ticked while it is unchanged. */
     const copied = new Set<string>();
 
@@ -369,7 +376,39 @@ export const deviceOnboardingTool: Tool = {
     devicePanel.append(deviceHead, deviceWrap);
     devicePanel.hidden = true;
 
-    left.append(inputPanel, devicePanel);
+    // --- the FortiGate's current config (optional) ---
+    const statePanel = el('section', 'panel');
+    statePanel.append(el('h2', undefined, 'Already on the FortiGate (optional)'));
+    statePanel.append(
+      el(
+        'p',
+        'ref-note',
+        'Paste the output of these commands, or a config backup, and only what is missing or different is generated.',
+      ),
+    );
+    const stateCmdRow = el('div', 'btn-row');
+    const stateCmdBtn = el('button', 'btn', 'Copy the commands');
+    const stateCmdNote = el('span', 'copied', '');
+    stateCmdBtn.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(STATE_COMMANDS.join('\n') + '\n');
+      stateCmdNote.textContent = 'Copied \u2713';
+      setTimeout(() => (stateCmdNote.textContent = ''), 1500);
+    });
+    stateCmdRow.append(stateCmdBtn, stateCmdNote);
+    const stateCmds = el('pre', 'match-list', STATE_COMMANDS.join('\n'));
+    const stateArea = el('textarea', 'tool-input');
+    stateArea.placeholder = 'config switch-controller managed-switch\n    edit "S248EPTF00000001"\n    ...';
+    stateArea.spellcheck = false;
+    stateArea.wrap = 'off';
+    stateArea.addEventListener('input', () => {
+      stateText = stateArea.value;
+      regenerate();
+    });
+    const stateNote = el('div', 'stats');
+    stateNote.hidden = true;
+    statePanel.append(stateCmds, stateCmdRow, stateArea, stateNote);
+
+    left.append(inputPanel, statePanel, devicePanel);
 
     // ---------- options ----------
     const optionsPanel = el('section', 'panel');
@@ -419,10 +458,21 @@ export const deviceOnboardingTool: Tool = {
         }),
         text_('FortiLink interface', 'fortilink', 'fortilink'),
         text_('Switch group', 'switchGroup', 'optional'),
-        checkbox('Rename from serial number to name', opts.renameSwitches, (v) => {
-          opts.renameSwitches = v;
-          regenerate();
-        }, 'instead of setting a name, for switches the FortiGate already lists, FortiOS 7.4+'),
+        selectField(
+          'Switch names',
+          [
+            { value: 'set-name', label: 'set name (FortiOS 7.2 and earlier)' },
+            { value: 'rename', label: 'Rename from serial to name (7.4+, already listed)' },
+            { value: 'preconfigure', label: 'Create under the name with set sn (7.4+, not connected yet)' },
+            { value: 'none', label: 'Keep the serial, no name' },
+          ],
+          opts.switchNaming,
+          (v) => {
+            opts.switchNaming = v as SwitchNaming;
+            regenerate();
+          },
+          'FortiOS 7.4 dropped "set name" on switches: the ID is the name. With the current config pasted, either 7.4+ choice renames what is there and creates what is not.',
+        ),
         el('div', 'subhead', 'FortiAP'),
         selectField('Approve / reject', AUTH_OPTIONS, opts.apAuth, (v) => {
           opts.apAuth = v as AuthAction;
@@ -491,7 +541,14 @@ export const deviceOnboardingTool: Tool = {
       download('switch-ap-onboarding.txt', joinBatches(batches), 'text/plain'),
     );
     inventoryBtn.addEventListener('click', () =>
-      download('switch-ap-inventory.csv', inventoryCsv(batches), 'text/csv'),
+      download(
+        'switch-ap-inventory.csv',
+        inventoryCsv(
+          batches,
+          plan.filter((p) => p.status === 'done').map((p) => p.device),
+        ),
+        'text/csv',
+      ),
     );
 
     right.append(optionsPanel, outputPanel);
@@ -525,29 +582,35 @@ export const deviceOnboardingTool: Tool = {
     }
 
     function renderDevices(): void {
-      const total = batches.reduce((n, b) => n + b.devices.length, 0);
-      devicePanel.hidden = total === 0;
-      deviceHead.textContent = `Devices (${total})`;
+      devicePanel.hidden = plan.length === 0;
+      deviceHead.textContent = `Devices (${plan.length})`;
       const table = el('table', 'device-table');
       const head = el('tr');
-      for (const h of ['Batch', 'Type', 'Serial', 'Name', 'Comments', 'FortiCloud key', 'Group']) {
+      for (const h of ['Batch', 'Status', 'Type', 'Serial', 'Name', 'Comments', 'FortiCloud key', 'Group']) {
         head.append(el('th', undefined, h));
       }
       table.append(head);
-      for (const batch of batches) {
-        for (const d of batch.devices) {
-          const tr = el('tr');
-          tr.append(
-            el('td', undefined, String(batch.index)),
-            el('td', undefined, d.kind === 'ap' ? 'AP' : 'Switch'),
-            el('td', 'mono', d.serial),
-            el('td', undefined, d.name),
-            el('td', undefined, d.comment),
-            el('td', 'mono', d.cloudKey),
-            el('td', undefined, d.group),
-          );
-          table.append(tr);
-        }
+      for (const p of plan) {
+        const d = p.device;
+        const status =
+          p.status === 'done'
+            ? 'Already done'
+            : p.status === 'change'
+              ? `Update: ${p.changes.join(', ')}`
+              : 'New';
+        const tr = el('tr');
+        if (p.status === 'done') tr.className = 'device-done';
+        tr.append(
+          el('td', undefined, p.batch === null ? '' : String(p.batch)),
+          el('td', undefined, status),
+          el('td', undefined, d.kind === 'ap' ? 'AP' : 'Switch'),
+          el('td', 'mono', d.serial),
+          el('td', undefined, d.name),
+          el('td', undefined, d.comment),
+          el('td', 'mono', d.cloudKey),
+          el('td', undefined, d.group),
+        );
+        table.append(tr);
       }
       deviceWrap.replaceChildren(table);
     }
@@ -602,22 +665,61 @@ export const deviceOnboardingTool: Tool = {
         table.rows.length && found.length ? `Columns: ${found.join(' \u00b7 ')}` : 'Columns';
 
       const read = readDevices(table, columns, { kind: kindChoice });
-      const result = generateOnboarding(read.devices, opts);
+      const existing = parseExistingState(stateText);
+      const result = generateOnboarding(read.devices, opts, existing);
       batches = result.batches;
+      plan = result.plan;
+
+      // What was recognised in the pasted config, so a paste that did not
+      // take is obvious.
+      setShown(stateNote, stateText.trim() !== '');
+      if (existing) {
+        const found: string[] = [];
+        if (existing.switches) found.push(plural(existing.switches.length, 'switch', 'switches'));
+        if (existing.aps) found.push(plural(existing.aps.length, 'AP'));
+        const groups = (existing.switchGroups?.length ?? 0) + (existing.apGroups?.length ?? 0);
+        if (existing.switchGroups || existing.apGroups) found.push(plural(groups, 'group'));
+        const missing: string[] = [];
+        if (!existing.switches) missing.push('managed-switch');
+        if (!existing.aps) missing.push('wtp');
+        let note = `Read ${found.join(', ')} from the FortiGate.`;
+        if (missing.length) note += ` No ${missing.join(' or ')} section, so those are generated in full.`;
+        if (result.unlisted.length) {
+          note += ` ${result.unlisted.length} on the FortiGate ${result.unlisted.length === 1 ? 'is' : 'are'} not in your list: ${result.unlisted
+            .slice(0, 6)
+            .map((u) => u.id)
+            .join(', ')}${result.unlisted.length > 6 ? ', ...' : ''}.`;
+        }
+        stateNote.textContent = note;
+      } else {
+        stateNote.textContent =
+          'No switch or FortiAP config found in this text. Paste the output of the commands above.';
+      }
 
       const isEmpty = batches.length === 0;
       setShown(batchList, !isEmpty);
       setShown(empty, isEmpty);
+      empty.textContent =
+        plan.length > 0
+          ? 'Nothing to do: every device in the list is already on the FortiGate as wanted.'
+          : 'Paste a device list, load a CSV or XLSX file, or add devices by hand.';
       downloadAllBtn.disabled = isEmpty;
-      inventoryBtn.disabled = isEmpty;
+      inventoryBtn.disabled = plan.length === 0;
       const parts = [
         plural(result.stats.switches, 'switch', 'switches'),
         plural(result.stats.aps, 'AP'),
         plural(batches.length, 'batch', 'batches'),
       ];
+      if (existing) {
+        parts.push(
+          `${result.stats.fresh} new`,
+          `${result.stats.changed} to update`,
+          `${result.stats.done} already done`,
+        );
+      }
       if (read.skipped) parts.push(`${read.skipped} skipped`);
       stats.textContent = parts.join(' \u00b7 ');
-      setShown(stats, !isEmpty || read.skipped > 0);
+      setShown(stats, plan.length > 0 || read.skipped > 0);
 
       renderBatches();
       renderDevices();

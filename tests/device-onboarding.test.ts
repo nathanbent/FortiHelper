@@ -8,6 +8,7 @@ import {
   joinBatches,
   kindFromSerial,
   parseDeviceTable,
+  parseExistingState,
   readDevices,
   readXlsx,
   rowsToTsv,
@@ -181,7 +182,7 @@ describe('generateOnboarding', () => {
   it('emits switch and AP entries with the defaults', () => {
     const { batches, warnings, stats } = generateOnboarding(load(SHEET).devices);
     expect(warnings).toEqual([]);
-    expect(stats).toEqual({ switches: 1, aps: 1 });
+    expect(stats).toEqual({ switches: 1, aps: 1, fresh: 2, changed: 0, done: 0 });
     expect(batches).toHaveLength(1);
     expect(batches[0].output).toBe(
       [
@@ -309,7 +310,7 @@ describe('generateOnboarding', () => {
 
   it('renames switches from serial to name when asked, leaving APs alone', () => {
     const { batches, warnings } = generateOnboarding(load(SHEET).devices, {
-      renameSwitches: true,
+      switchNaming: 'rename',
       switchGroup: 'Floor1',
     });
     expect(warnings).toEqual([]);
@@ -346,7 +347,7 @@ describe('generateOnboarding', () => {
       load(
         'serial,name\nS248EPTF00000001,\nS248EPTF00000002,Core SW\nS248EPTF00000003,dup\nS248EPTF00000004,DUP',
       ).devices,
-      { renameSwitches: true },
+      { switchNaming: 'rename' },
     );
     const out = batches[0].output;
     expect(out.match(/^ {4}rename .*/gm)).toEqual([
@@ -354,11 +355,39 @@ describe('generateOnboarding', () => {
       '    rename "S248EPTF00000003" to "dup"',
     ]);
     expect(out).toContain('edit "S248EPTF00000001"');
-    expect(out).toContain('edit "S248EPTF00000004"\n        set name "DUP"');
+    expect(out).toContain('edit "S248EPTF00000004"');
+    // FortiOS 7.4+ has no "set name" on a switch, so none is emitted here.
+    expect(out).not.toContain('set name');
     const messages = warnings.map((w) => w.message).join('\n');
-    expect(messages).toContain('S248EPTF00000001: no name to rename it to');
+    expect(messages).toContain('S248EPTF00000001: no name to give it');
     expect(messages).toContain('"Core SW" may be refused as a switch ID');
-    expect(messages).toContain('"DUP" is already the new ID of S248EPTF00000003');
+    expect(messages).toContain('"DUP" is already the ID of S248EPTF00000003');
+  });
+
+  it('creates a switch under its name with set sn when it is not connected yet', () => {
+    const { batches } = generateOnboarding(load(SHEET).devices.slice(0, 1), {
+      switchNaming: 'preconfigure',
+      switchGroup: 'Floor1',
+    });
+    expect(batches[0].output).toBe(
+      [
+        'config switch-controller managed-switch',
+        '    edit "IDF1-SW1"',
+        '        set sn "S248EPTF00000001"',
+        '        set description "First floor IDF"',
+        '        set fsw-wan1-peer "fortilink"',
+        '        set fsw-wan1-admin enable',
+        '    next',
+        'end',
+        'config switch-controller switch-group',
+        '    edit "Floor1"',
+        '        set fortilink "fortilink"',
+        '        append members "IDF1-SW1"',
+        '    next',
+        'end',
+        '',
+      ].join('\n'),
+    );
   });
 
   it('warns about a FortiAP group holding two models', () => {
@@ -488,5 +517,205 @@ describe('readXlsx', () => {
   it('rejects files that are not workbooks', async () => {
     await expect(readXlsx(new TextEncoder().encode('serial,name\n'))).rejects.toThrow(/not an \.xlsx/);
     await expect(readXlsx(zip({ 'hello.txt': 'hi' }, false))).rejects.toThrow(/workbook\.xml is missing/);
+  });
+});
+
+describe('comparing against the FortiGate', () => {
+  const LIST = [
+    'serial,name,comments',
+    'S248EPTF00000001,IDF1-SW1,First floor IDF',
+    'S248EPTF00000002,IDF2-SW1,Second floor IDF',
+    'S248EPTF00000003,IDF3-SW1,Third floor IDF',
+    'FP231FTF00000004,AP-Lobby,Lobby ceiling',
+    'FP231FTF00000005,AP-Conf,Conference room',
+  ].join('\n');
+
+  // As "show" prints it: defaults left out, a prompt and a pager line mixed in.
+  const SHOWN = [
+    'FGT # show switch-controller managed-switch',
+    'config switch-controller managed-switch',
+    '    edit "S248EPTF00000001"',
+    '        set name "IDF1-SW1"',
+    '        set description "First floor IDF"',
+    '        set fsw-wan1-peer "fortilink"',
+    '        set fsw-wan1-admin enable',
+    '        config ports',
+    '            edit "port1"',
+    '                set description "not the switch description"',
+    '            next',
+    '        end',
+    '    next',
+    '    edit "S248EPTF00000002"',
+    '        set fsw-wan1-peer "fortilink"',
+    '    next',
+    '    edit "S248EPTF00000099"',
+    '        set fsw-wan1-peer "fortilink"',
+    '    next',
+    'end',
+    'config switch-controller switch-group',
+    '    edit "Floor1"',
+    '        set fortilink "fortilink"',
+    '        set members "S248EPTF00000001"',
+    '    next',
+    'end',
+    'config wireless-controller wtp',
+    '    edit "FP231FTF00000004"',
+    '        set name "AP-Lobby"',
+    '        set location "Lobby ceiling"',
+    '        set wtp-profile "FAP231F-default"',
+    '    next',
+    'end',
+  ].join('\n');
+
+  it('reads switches, APs, and groups out of show output', () => {
+    const state = parseExistingState(SHOWN)!;
+    expect(state.switches!.map((sw) => [sw.id, sw.admin, sw.description])).toEqual([
+      ['S248EPTF00000001', 'enable', 'First floor IDF'],
+      ['S248EPTF00000002', 'discovered', ''],
+      ['S248EPTF00000099', 'discovered', ''],
+    ]);
+    expect(state.aps).toEqual([
+      {
+        serial: 'FP231FTF00000004',
+        admin: 'enable',
+        name: 'AP-Lobby',
+        location: 'Lobby ceiling',
+        profile: 'FAP231F-default',
+      },
+    ]);
+    expect(state.switchGroups![0].members).toEqual(['S248EPTF00000001']);
+    expect(state.apGroups).toBeNull();
+    expect(state.namedSwitchIds).toBe(false);
+    expect(parseExistingState('')).toBeNull();
+    expect(parseExistingState('config firewall policy\nend')).toBeNull();
+  });
+
+  it('emits only what is missing or different', () => {
+    const result = generateOnboarding(
+      load(LIST).devices,
+      { switchGroup: 'Floor1', apProfile: 'FAP{model}-default' },
+      parseExistingState(SHOWN),
+    );
+    expect(result.plan.map((p) => [p.device.serial, p.status, p.changes, p.batch])).toEqual([
+      ['S248EPTF00000001', 'done', [], null],
+      ['S248EPTF00000002', 'change', ['name', 'description', 'approval', 'group'], 1],
+      ['S248EPTF00000003', 'new', [], 1],
+      ['FP231FTF00000004', 'done', [], null],
+      ['FP231FTF00000005', 'new', [], 1],
+    ]);
+    expect(result.stats).toEqual({ switches: 3, aps: 2, fresh: 2, changed: 1, done: 2 });
+    expect(result.unlisted).toEqual([{ kind: 'switch', id: 'S248EPTF00000099', serial: 'S248EPTF00000099' }]);
+    expect(result.batches).toHaveLength(1);
+    expect(result.batches[0].output).toBe(
+      [
+        'config switch-controller managed-switch',
+        '    edit "S248EPTF00000002"',
+        '        set name "IDF2-SW1"',
+        '        set description "Second floor IDF"',
+        '        set fsw-wan1-admin enable',
+        '    next',
+        '    edit "S248EPTF00000003"',
+        '        set name "IDF3-SW1"',
+        '        set description "Third floor IDF"',
+        '        set fsw-wan1-peer "fortilink"',
+        '        set fsw-wan1-admin enable',
+        '    next',
+        'end',
+        'config switch-controller switch-group',
+        '    edit "Floor1"',
+        '        append members "S248EPTF00000002" "S248EPTF00000003"',
+        '    next',
+        'end',
+        'config wireless-controller wtp',
+        '    edit "FP231FTF00000005"',
+        '        set admin enable',
+        '        set name "AP-Conf"',
+        '        set location "Conference room"',
+        '        set wtp-profile "FAP231F-default"',
+        '    next',
+        'end',
+        '',
+      ].join('\n'),
+    );
+    expect(inventoryCsv(result.batches, result.plan.filter((p) => p.status === 'done').map((p) => p.device))).toContain(
+      'done,FortiSwitch,S248EPTF00000001,IDF1-SW1,First floor IDF,,Floor1,',
+    );
+  });
+
+  it('has nothing to emit once the FortiGate matches the list', () => {
+    const devices = load('serial,name,comments\nS248EPTF00000001,IDF1-SW1,First floor IDF').devices;
+    const result = generateOnboarding(devices, {}, parseExistingState(SHOWN));
+    expect(result.batches).toEqual([]);
+    expect(result.plan[0].status).toBe('done');
+  });
+
+  it('generates a section in full when it was not pasted', () => {
+    const onlyAps = SHOWN.slice(SHOWN.indexOf('config wireless-controller wtp'));
+    const result = generateOnboarding(load(LIST).devices, {}, parseExistingState(onlyAps));
+    expect(result.plan.map((p) => p.status)).toEqual(['new', 'new', 'new', 'done', 'new']);
+  });
+
+  const NAMED = [
+    'config vdom',
+    'edit root',
+    'config switch-controller managed-switch',
+    '    edit "Core"',
+    '        set sn "S248EPTF00000001"',
+    '        set fsw-wan1-peer "fortilink"',
+    '        set fsw-wan1-admin enable',
+    '    next',
+    '    edit "S248EPTF00000002"',
+    '        set sn "S248EPTF00000002"',
+    '        set fsw-wan1-peer "fortilink"',
+    '        set fsw-wan1-admin enable',
+    '    next',
+    'end',
+    'config switch-controller switch-group',
+    '    edit "Floor1"',
+    '        set fortilink "fortilink"',
+    '        set members "Core"',
+    '    next',
+    'end',
+    'end',
+  ].join('\n');
+
+  it('renames what is there and pre-configures what is not, on a FortiGate with named IDs', () => {
+    const state = parseExistingState(NAMED)!;
+    expect(state.namedSwitchIds).toBe(true);
+    expect(state.switches!.map((sw) => [sw.id, sw.serial])).toEqual([
+      ['Core', 'S248EPTF00000001'],
+      ['S248EPTF00000002', 'S248EPTF00000002'],
+    ]);
+    const devices = load(
+      'serial,name\nS248EPTF00000001,IDF1-SW1\nS248EPTF00000002,IDF2-SW1\nS248EPTF00000003,IDF3-SW1',
+    ).devices;
+    const result = generateOnboarding(devices, { switchNaming: 'rename', switchGroup: 'Floor1' }, state);
+    expect(result.batches[0].output).toBe(
+      [
+        'config switch-controller managed-switch',
+        '    rename "Core" to "IDF1-SW1"',
+        '    rename "S248EPTF00000002" to "IDF2-SW1"',
+        '    edit "IDF3-SW1"',
+        '        set sn "S248EPTF00000003"',
+        '        set fsw-wan1-peer "fortilink"',
+        '        set fsw-wan1-admin enable',
+        '    next',
+        'end',
+        'config switch-controller switch-group',
+        '    edit "Floor1"',
+        '        append members "IDF2-SW1" "IDF3-SW1"',
+        '    next',
+        'end',
+        '',
+      ].join('\n'),
+    );
+    // The switch already in the group under its old ID is not added again.
+    expect(result.plan[0].changes).toEqual(['rename']);
+  });
+
+  it('warns that set name will be refused where switch IDs are names', () => {
+    const devices = load('serial,name\nS248EPTF00000001,IDF1-SW1').devices;
+    const { warnings } = generateOnboarding(devices, {}, parseExistingState(NAMED));
+    expect(warnings.map((w) => w.message).join()).toContain('"set name" does not exist');
   });
 });
