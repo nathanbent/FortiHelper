@@ -17,6 +17,10 @@ list. Keep examples generic: private or documentation addresses only.
 - <dest-ip> (ip) - Destination IP - e.g. 10.2.0.10
 - <peer-ip> (ip) - Remote gateway IP - e.g. 203.0.113.10
 - <neighbor-ip> (ip) - Neighbor IP - e.g. 10.255.0.2
+- <fortigate-ip> (ip) - FortiGate IP - e.g. 10.1.1.1
+- <fortilink-ip> (ip) - FortiLink interface IP - e.g. 10.255.1.1
+- <fortilink-mask> (mask) - FortiLink netmask - e.g. 255.255.255.0
+- <ap-ip> (ip) - FortiAP IP - e.g. 10.1.30.20
 - <querier-ip> (ip) - IGMP querier IP - e.g. 10.1.20.1
 - <subnet-cidr> (cidr) - Subnet - e.g. 10.1.2.0/24
 - <local-subnet> (ip) - Local subnet - e.g. 10.1.0.0
@@ -54,6 +58,12 @@ list. Keep examples generic: private or documentation addresses only.
 - <port-b> - Second member port - e.g. port2
 - <trunk-name> - Trunk name - e.g. uplink-lag
 - <instance> (number) - MST instance - e.g. 0
+- <vlan-id> (number) - VLAN ID - e.g. 20
+
+## FortiAP
+
+- <ap-serial> - FortiAP serial - e.g. FP231FTF20000000
+- <client-mac> - Client MAC address - e.g. 00:11:22:33:44:55
 
 ## VPN
 

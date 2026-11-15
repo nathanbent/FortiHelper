@@ -23,7 +23,7 @@ import { parseVersion } from './versions';
  *     kind: diagnostics
  *     copyAll: true          # optional
  *     order: 10              # optional, lower sorts first
- *     runOn: fortigate       # optional: fortigate | fortiswitch, shown as a badge
+ *     runOn: fortigate       # optional: fortigate | fortiswitch | fortiap, shown as a badge
  *     since: 6.4             # optional: first FortiOS release the sheet applies to
  *     until: 7.6             # optional: first release it no longer applies to
  *     ---

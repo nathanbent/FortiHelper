@@ -14,6 +14,7 @@ export const REFERENCE_TOPICS = [
   { value: 'saml', label: 'SAML / SSO' },
   { value: 'ha', label: 'High availability' },
   { value: 'fortiswitch', label: 'FortiSwitch' },
+  { value: 'fortiap', label: 'FortiAP and wireless' },
   { value: 'webfilter', label: 'Web filter' },
   { value: 'general', label: 'General' },
 ] as const;
@@ -53,6 +54,7 @@ export interface ReferenceEntry {
 export const RUN_ON = [
   { value: 'fortigate', label: 'FortiGate' },
   { value: 'fortiswitch', label: 'FortiSwitch' },
+  { value: 'fortiap', label: 'FortiAP' },
 ] as const;
 
 export type RunOn = (typeof RUN_ON)[number]['value'];

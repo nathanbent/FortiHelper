@@ -211,7 +211,7 @@ topic: ipsec              # a value from REFERENCE_TOPICS
 kind: diagnostics         # a value from REFERENCE_KINDS
 copyAll: true             # optional: adds a "Copy all" button
 order: 10                 # optional: lower sorts first, default 100
-runOn: fortigate          # optional: fortigate | fortiswitch, shown as a badge
+runOn: fortigate          # optional: fortigate | fortiswitch | fortiap, shown as a badge
 since: 6.4                # optional: first FortiOS release the sheet applies to
 until: 7.6                # optional: first release it no longer applies to
 ---

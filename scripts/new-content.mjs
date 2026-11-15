@@ -61,7 +61,7 @@ kind: ${kind}
 order: ${order}
 # Optional lines. Remove the leading "# " to use one, or delete them.
 # copyAll: true          numbered steps and a "Copy all" button, for a sequence
-# runOn: fortigate       fortigate | fortiswitch, shown as a badge
+# runOn: fortigate       fortigate | fortiswitch | fortiap, shown as a badge
 # since: 7.2             first FortiOS release this sheet applies to
 # until: 7.6             first release it no longer applies to
 #
