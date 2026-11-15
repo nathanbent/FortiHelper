@@ -273,6 +273,47 @@ Markdown is inlined at build time, so the deployed page fetches nothing.
 A malformed sheet fails the build and the tests with the filename and the
 reason, rather than disappearing silently.
 
+### Page help
+
+Every page has a collapsed **How this page works** panel under its heading.
+Its text is one markdown file per page, `content/help/<page id>.md`, with up
+to five sections in a fixed order:
+
+```markdown
+## Use it for
+The job, and when to pick another page instead.
+
+## Give it
+Accepted input, with one short example such as `198.51.100.0/24`.
+
+## You get
+What the output is and what to do with it.
+
+## Limits
+What it does not handle, and what to check by hand.
+
+## More
+[A README section]({repo}#tools) or [another page](#/reference).
+```
+
+- leave out a section that would be empty; no other headings are allowed
+- a blank line starts a new paragraph, backticks mark code, and
+  `[text](target)` is a link to another page (`#/...`), the repository
+  (`{repo}`) or an `https://` URL
+- the limit is 200 words: anything longer belongs in this README, linked
+  under **More**
+- the panel is reading matter only. Controls stay on the page, and anything
+  a user must know to get correct output is a visible hint as well, because
+  most people never open the panel
+- change the help in the same commit as the behavior it describes
+
+A new tool's `id` has to be added to `PAGE_IDS` in
+[`src/lib/help/index.ts`](src/lib/help/index.ts) before it compiles, and
+[`tests/help.test.ts`](tests/help.test.ts) then fails until the page has a
+help file. The panel is rendered by the shell in `src/main.ts`, so a tool
+does nothing to show it. Whether a panel is open is remembered per page in
+`localStorage`.
+
 ### Starting a new sheet or template
 
 ```bash
