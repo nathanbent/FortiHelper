@@ -288,11 +288,17 @@ export function loadSheets(): ParsedSheet[] {
     eager: true,
   }) as Record<string, string>;
 
-  const sheets = Object.entries(files).map(([path, markdown]) =>
-    parseSheet(markdown, path.split('/').pop() ?? path),
-  );
+  return parseSheets(files);
+}
 
-  return sheets.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+/**
+ * Parse a set of sheets, keyed by path or filename, into display order:
+ * `order` then title. Shared by the app and the JSON export.
+ */
+export function parseSheets(files: Record<string, string>): ParsedSheet[] {
+  return Object.entries(files)
+    .map(([path, markdown]) => parseSheet(markdown, path.split('/').pop() ?? path))
+    .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
 }
 
 /**

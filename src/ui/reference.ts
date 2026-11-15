@@ -218,7 +218,11 @@ export const referenceTool: Tool = {
 
     const summaryRow = el('div', 'ref-summary-row');
     const keysHint = el('span', 'ref-keys', '/ search \u00b7 \u2191 \u2193 move \u00b7 Enter open or copy');
-    summaryRow.append(summary, keysHint, expandBtn);
+    // The same content as JSON, for use outside this app (see src/lib/export.ts).
+    const jsonLink = el('a', 'ref-json', 'JSON');
+    jsonLink.href = `${import.meta.env.BASE_URL}reference.json`;
+    jsonLink.title = 'Every sheet as one JSON file, for use in other tools';
+    summaryRow.append(summary, keysHint, jsonLink, expandBtn);
 
     // Recently opened sheets, as shortcuts back to them.
     const recentRow = el('div', 'ref-recent');
