@@ -337,6 +337,18 @@ written out as comments. Topic defaults to `general` and kind to
 `content/quickstart/<id>.md`. Both files are valid as written, so the build
 keeps passing while you edit, and both refuse to overwrite an existing file.
 
+### Trying a sheet in the browser
+
+The Reference tab's **Add your own sheet** panel takes a sheet in the same
+markdown format, pasted or loaded from a `.md` file, with no build or
+commit. It appears in its topic group with a **Yours** badge and works like
+any other sheet: variables, search, favourites, deep links. It is saved in
+that browser's `localStorage` and never uploaded, so it suits a draft you
+are still writing or a sheet that should stay private. Each saved sheet can
+be edited, copied back out as markdown (to commit later), or removed. An id
+that a built-in sheet already uses is refused; reusing one of your own ids
+replaces that sheet. Your own sheets are not part of `reference.json`.
+
 ### Using the content elsewhere
 
 The build also writes the content as plain JSON next to the site, so other

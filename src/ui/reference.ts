@@ -4,6 +4,10 @@ import { colorHex } from '../lib/colors';
 import {
   referenceSections,
   REFERENCE_TOPICS,
+  EXAMPLE_SHEET,
+  addCustomSheet,
+  parseCustomSheets,
+  type ParsedSheet,
   RUN_ON,
   parseVersion,
   versionApplies,
@@ -81,6 +85,19 @@ function sectionMatches(section: ReferenceSection, query: string): boolean {
 const FAVOURITES_KEY = 'fortihelper:reference:favourites';
 const RECENT_KEY = 'fortihelper:reference:recent';
 const VERSION_KEY = 'fortihelper:reference:fortios';
+/** The reader's own sheets: a JSON array of markdown, kept in this browser only. */
+const CUSTOM_KEY = 'fortihelper:reference:custom';
+
+function readCustom(): string[] {
+  try {
+    const stored: unknown = JSON.parse(readStored(CUSTOM_KEY) || '[]');
+    return Array.isArray(stored) ? stored.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+const BUNDLED_IDS: ReadonlySet<string> = new Set(referenceSections.map((s) => s.id));
 /** How many recently opened sheets to remember. */
 const RECENT_MAX = 6;
 
@@ -103,8 +120,8 @@ function writeStored(key: string, value: string): void {
 }
 
 /** Stored sheet ids, dropping any that no longer name a sheet. */
-function readIds(key: string): string[] {
-  const known = new Set(referenceSections.map((s) => s.id));
+function readIds(key: string, sections: ReferenceSection[]): string[] {
+  const known = new Set(sections.map((s) => s.id));
   return readStored(key)
     .split(',')
     .filter((id) => known.has(id));
@@ -122,13 +139,32 @@ export const referenceTool: Tool = {
     /** Sections the user opened by hand, so filtering does not fight them. */
     const userOpened = new Set<string>();
     /** Pinned sheets, in the order they were pinned. */
-    const favourites = readIds(FAVOURITES_KEY);
+    // The reader's own sheets sit alongside the built-in ones, in the same
+    // topic groups and order.
+    const customStored = readCustom();
+    const custom = parseCustomSheets(customStored, BUNDLED_IDS);
+    const customIds = new Set(custom.sheets.map((s) => s.id));
+    const allSections: ReferenceSection[] = [
+      ...referenceSections.map((s) => ({ s, order: (s as ParsedSheet).order ?? 100 })),
+      ...custom.sheets.map((s) => ({ s, order: s.order })),
+    ]
+      .sort((a, b) => a.order - b.order || a.s.title.localeCompare(b.s.title))
+      .map(({ s }) => s);
+
+    /** Rebuild the tab after the reader's sheets change, optionally opening one. */
+    const remount = (openId?: string): void => {
+      document.removeEventListener('keydown', onKey);
+      container.replaceChildren();
+      referenceTool.mount(container, openId);
+    };
+
+    const favourites = readIds(FAVOURITES_KEY, allSections);
     /** Recently opened sheets, newest first. */
-    let recent = readIds(RECENT_KEY);
+    let recent = readIds(RECENT_KEY, allSections);
     /** The FortiOS version the reader runs, when they have said. */
     let running = parseVersion(readStored(VERSION_KEY));
     // `#/reference/<sheet id>` opens straight to that sheet.
-    const linked = referenceSections.find((s) => s.id === param);
+    const linked = allSections.find((s) => s.id === param);
     if (linked) userOpened.add(linked.id);
 
     // ---------- filters ----------
@@ -228,6 +264,104 @@ export const referenceTool: Tool = {
     const recentRow = el('div', 'ref-recent');
     filters.append(chips, row, recentRow, summaryRow);
     container.append(filters);
+
+    // ---------- your own sheets ----------
+    const importPanel = el('details', 'panel ref-import');
+    const importHead = el('summary', 'ref-summary-head');
+    const importHeading = el('div', 'ref-heading');
+    const stored = custom.sheets.length + custom.errors.length;
+    importHeading.append(
+      el('span', 'ref-title', 'Add your own sheet'),
+      el('span', 'ref-tag', stored ? `${stored} saved in this browser` : 'Kept in this browser only'),
+    );
+    importHead.append(importHeading);
+
+    const importBody = el('div', 'ref-body');
+    importBody.append(
+      el(
+        'p',
+        'ref-note',
+        'Paste a sheet in the same markdown format as the built-in ones, or load a .md file. It is saved in this browser and never uploaded. A sheet with the same id as one of yours replaces it.',
+      ),
+    );
+    const importArea = el('textarea', 'tool-input ref-import-area');
+    importArea.spellcheck = false;
+    importArea.placeholder = EXAMPLE_SHEET;
+    const importMessage = el('p', 'ref-import-message', '');
+    setShown(importMessage, false);
+    const say = (text: string, bad: boolean): void => {
+      importMessage.textContent = text;
+      importMessage.classList.toggle('ref-import-error', bad);
+      setShown(importMessage, text !== '');
+    };
+
+    const addSheet = (markdown: string): void => {
+      const result = addCustomSheet(customStored, markdown, BUNDLED_IDS);
+      if (!result.ok) return say(result.error, true);
+      writeStored(CUSTOM_KEY, JSON.stringify(result.list));
+      remount(result.id);
+    };
+    const removeStored = (markdown: string): void => {
+      const list = customStored.filter((m) => m !== markdown);
+      writeStored(CUSTOM_KEY, list.length ? JSON.stringify(list) : '');
+      remount();
+    };
+
+    const importAdd = el('button', 'btn primary', 'Add sheet');
+    importAdd.addEventListener('click', () => addSheet(importArea.value));
+    const importFile = el('input');
+    importFile.type = 'file';
+    importFile.accept = '.md,.markdown,.txt,text/plain,text/markdown';
+    importFile.style.display = 'none';
+    importFile.addEventListener('change', async () => {
+      const file = importFile.files?.[0];
+      if (!file) return;
+      // Into the box, not straight to storage: the reader sees what they loaded.
+      importArea.value = await file.text();
+      importFile.value = '';
+      say(`Loaded ${file.name}. Check it, then choose Add sheet.`, false);
+    });
+    const importLoad = el('button', 'btn', 'Load file...');
+    importLoad.addEventListener('click', () => importFile.click());
+    const importExample = el('button', 'btn', 'Insert example');
+    importExample.addEventListener('click', () => {
+      importArea.value = EXAMPLE_SHEET;
+      say('', false);
+    });
+    const importRow = el('div', 'btn-row');
+    importRow.append(importAdd, importLoad, importExample, importFile);
+    importBody.append(importArea, importRow, importMessage);
+
+    // What is saved: each sheet can be edited, copied out, or removed.
+    if (stored) {
+      const list = el('div', 'ref-import-list');
+      const row = (label: string, note: string, markdown: string, bad: boolean): void => {
+        const line = el('div', 'ref-entry');
+        const name = el('span', 'ref-import-name', label);
+        const detail = el('span', bad ? 'desc ref-import-error' : 'desc', note);
+        const edit = el('button', 'btn', 'Edit');
+        edit.addEventListener('click', () => {
+          importArea.value = markdown;
+          say('Edit it above, then choose Add sheet to save the change.', false);
+          importArea.focus();
+        });
+        const remove = el('button', 'btn', 'Remove');
+        remove.addEventListener('click', () => removeStored(markdown));
+        line.append(name, detail, edit, copyButton('Copy markdown', () => markdown), remove);
+        list.append(line);
+      };
+      for (const sheet of custom.sheets) {
+        row(sheet.title, `${topicLabel(sheet.topic)} \u00b7 id ${sheet.id}`, sheet.markdown, false);
+      }
+      for (const broken of custom.errors) {
+        row('Could not be read', broken.message, broken.markdown, true);
+      }
+      importBody.append(list);
+    }
+    // A saved sheet that no longer parses should not sit unnoticed.
+    importPanel.open = custom.errors.length > 0;
+    importPanel.append(importHead, importBody);
+    container.append(importPanel);
 
     // ---------- variables ----------
     // Values typed into a section's variable fields, keyed by placeholder
@@ -364,7 +498,7 @@ export const referenceTool: Tool = {
     // soon as its placeholder gets a value anywhere, or when picked from the
     // "Add" list, so values can be set up front before opening any sheet.
     const barLabel = (name: string): string => describeVariable(name, sharedVariables).label;
-    const allPlaceholders = [...new Set(referenceSections.flatMap(sectionPlaceholders))].sort(
+    const allPlaceholders = [...new Set(allSections.flatMap(sectionPlaceholders))].sort(
       (a, b) => barLabel(a).localeCompare(barLabel(b)),
     );
     const bar = el('section', 'panel ref-varbar');
@@ -563,7 +697,7 @@ export const referenceTool: Tool = {
     const groupOf = (section: ReferenceSection): string =>
       favourites.includes(section.id) ? FAVOURITES : section.topic;
 
-    for (const { topic: groupTopic, sections } of groupByTopic(referenceSections)) {
+    for (const { topic: groupTopic, sections } of groupByTopic(allSections)) {
       groupHeading(groupTopic, topicLabel(groupTopic));
 
       for (const section of sections) {
@@ -582,6 +716,11 @@ export const referenceTool: Tool = {
         }${count === 1 ? '' : 's'}`;
         const tag = el('span', 'ref-tag', kindTag);
         heading.append(tag);
+        if (customIds.has(section.id)) {
+          const mine = el('span', 'ref-badge ref-badge-mine', 'Yours');
+          mine.title = 'Added by you, kept in this browser only';
+          heading.append(mine);
+        }
         if (section.runOn) {
           const device = RUN_ON.find((r) => r.value === section.runOn)!.label;
           const badge = el('span', 'ref-badge', `Run on ${device}`);
@@ -767,7 +906,7 @@ export const referenceTool: Tool = {
       recentRow.replaceChildren(
         el('span', 'ref-recent-label', 'Recent'),
         ...recent.map((id) => {
-          const section = referenceSections.find((s) => s.id === id)!;
+          const section = allSections.find((s) => s.id === id)!;
           const chip = el('button', 'btn ref-chip', section.title);
           chip.addEventListener('click', () => openSheet(id));
           return chip;

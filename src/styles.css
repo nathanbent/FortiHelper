@@ -1159,6 +1159,23 @@ mark.ref-filled.ref-hit { padding: 0 0.15em; }
   font-size: 0.85rem;
 }
 
+/* --- Reference: the reader's own sheets --- */
+.ref-import { margin-bottom: 1.25rem; padding: 0; }
+
+.ref-import-area { min-height: 180px; margin-bottom: 0.5rem; }
+
+.ref-import-message { font-size: 0.85rem; margin: 0.5rem 0 0; color: var(--secondary); }
+
+.ref-import-error { color: #b45309; }
+
+.ref-import-list { margin-top: 0.9rem; border-top: 1px solid var(--border); }
+
+.ref-import-name { font-weight: 600; font-size: 0.9rem; }
+
+.ref-import-list .desc { margin-right: auto; }
+
+.ref-badge-mine { border-color: var(--accent); color: var(--accent); }
+
 .batch-check {
   font-size: 0.85rem;
   color: var(--warn-text);
