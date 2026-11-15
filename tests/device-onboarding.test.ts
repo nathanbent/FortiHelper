@@ -851,3 +851,61 @@ describe('checking that a batch took', () => {
     expect(checks.every((c) => c.confirmed === c.devices.length)).toBe(true);
   });
 });
+
+describe('name patterns', () => {
+  const names = (text: string, options: Parameters<typeof generateOnboarding>[1]) =>
+    generateOnboarding(load(text).devices, options).plan.map((p) => p.device.name);
+
+  it('numbers unnamed devices per kind and leaves named rows alone', () => {
+    expect(
+      names(
+        'serial,name\nS248EPTF00000001,\nS248EPTF00000002,Core\nS248EPTF00000003,\nFP231FTF00000004,\nFP231FTF00000005,',
+        { switchNamePattern: 'IDF-SW{n:2}', apNamePattern: 'AP-{n}', nameStart: 9 },
+      ),
+    ).toEqual(['IDF-SW09', 'Core', 'IDF-SW10', 'AP-9', 'AP-10']);
+  });
+
+  it('counts within a group and fills in serial, model, and group', () => {
+    expect(
+      names(
+        'serial,group\nFP231FTF00001234,Lobby\nFP431FTF00005678,Hall\nFP231FTF00009012,Lobby\nS248EPTF00003456,Core\nFS1E48T400007890,Core',
+        {
+          apNamePattern: '{group}-{model}-{gn:2}',
+          switchNamePattern: '{model}-{last4}-{serial}',
+        },
+      ),
+    ).toEqual([
+      'Lobby-231F-01',
+      'Hall-431F-01',
+      'Lobby-231F-02',
+      '248EP-3456-S248EPTF00003456',
+      '1E48-7890-FS1E48T400007890',
+    ]);
+  });
+
+  it('uses the generated name in the config', () => {
+    const { batches, warnings } = generateOnboarding(load('S248EPTF00000001\nFP231FTF00000004').devices, {
+      switchNamePattern: 'SW{n}',
+      apNamePattern: 'AP{n}',
+    });
+    expect(warnings).toEqual([]);
+    expect(batches[0].output).toContain('rename "S248EPTF00000001" to "SW1"');
+    expect(batches[0].output).toContain('set name "AP1"');
+  });
+
+  it('warns about an unknown placeholder and a clash with a typed name', () => {
+    const { warnings, plan } = generateOnboarding(
+      load('serial,name\nS248EPTF00000001,SW1\nS248EPTF00000002,').devices,
+      { switchNamePattern: 'SW{n}' },
+    );
+    expect(plan[1].device.name).toBe('SW1');
+    expect(warnings.map((w) => w.message).join()).toContain('which row 2 already has');
+    const odd = generateOnboarding(load('S248EPTF00000001').devices, { switchNamePattern: '{site}-{n}' });
+    expect(odd.plan[0].device.name).toBe('{site}-1');
+    expect(odd.warnings.map((w) => w.message).join()).toContain('{site} is not a placeholder');
+  });
+
+  it('does nothing when names are switched off', () => {
+    expect(names('S248EPTF00000001', { switchNamePattern: 'SW{n}', setName: false })).toEqual(['']);
+  });
+});

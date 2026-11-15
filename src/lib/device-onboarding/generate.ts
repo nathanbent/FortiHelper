@@ -94,6 +94,24 @@ export interface OnboardingOptions {
   apProfile?: string;
   /** FortiAP group for rows without their own. Default '' (none). */
   apGroup?: string;
+
+  /**
+   * Name for switches whose row has none, built from a pattern:
+   *
+   * - `{n}`      counts the pattern-named switches from `nameStart`
+   * - `{gn}`     counts within the device's group
+   * - `{n:2}`    pads either counter with zeros: 01, 02, ...
+   * - `{serial}` `{last4}` the serial number, or its last four characters
+   * - `{model}`  the model read from the serial: 248EP, 231F
+   * - `{group}`  the device's group
+   *
+   * Default '' (rows with no name stay unnamed).
+   */
+  switchNamePattern?: string;
+  /** The same for FortiAPs, which count separately. Default ''. */
+  apNamePattern?: string;
+  /** First value of `{n}` and `{gn}`. Default 1. */
+  nameStart?: number;
 }
 
 /**
@@ -204,9 +222,13 @@ export function generateOnboarding(
     apAuth: options.apAuth ?? 'authorize',
     apProfile: (options.apProfile ?? '').trim(),
     apGroup: (options.apGroup ?? '').trim(),
+    switchNamePattern: (options.switchNamePattern ?? '').trim(),
+    apNamePattern: (options.apNamePattern ?? '').trim(),
+    nameStart: options.nameStart ?? 1,
   };
   const naming: SwitchNaming = o.setName ? o.switchNaming : 'none';
   const warnings: Warning[] = [];
+  if (o.setName) devices = nameFromPatterns(devices, o, warnings);
 
   const hasSwitches = devices.some((d) => d.kind === 'switch');
   if (hasSwitches && !o.fortilink) {
@@ -518,6 +540,86 @@ export function generateOnboarding(
 }
 
 type Resolved = Required<OnboardingOptions>;
+
+/** The model part of a serial: S248EP... -> 248EP, FS1E48... -> 1E48, FP231F... -> 231F. */
+function modelFromSerial(device: Device): string {
+  if (device.kind === 'ap') return apModelFromSerial(device.serial) ?? '';
+  return device.serial.startsWith('FS') ? device.serial.slice(2, 6) : device.serial.slice(1, 6);
+}
+
+const PLACEHOLDER = /\{([A-Za-z0-9]+)(?::(\d+))?\}/g;
+
+/**
+ * Give every device with no name one built from its kind's pattern. Rows
+ * that have a name are left alone and do not use up a number.
+ */
+function nameFromPatterns(devices: Device[], o: Resolved, warnings: Warning[]): Device[] {
+  if (!o.switchNamePattern && !o.apNamePattern) return devices;
+  const start = Number.isInteger(o.nameStart) ? o.nameStart : 1;
+  const counters = new Map<string, number>();
+  const next = (key: string): number => {
+    const n = counters.get(key) ?? start;
+    counters.set(key, n + 1);
+    return n;
+  };
+  const unknown = new Set<string>();
+  const used = new Map<string, number>();
+  for (const d of devices) {
+    if (d.name) used.set(`${d.kind}:${d.name.toLowerCase()}`, d.row);
+  }
+
+  const named = devices.map((device) => {
+    const pattern = device.kind === 'ap' ? o.apNamePattern : o.switchNamePattern;
+    if (device.name || !pattern) return device;
+    const group = device.group || (device.kind === 'ap' ? o.apGroup : o.switchGroup);
+    // A counter only advances when the pattern uses it.
+    const n = /\{n(:\d+)?\}/.test(pattern) ? next(device.kind) : 0;
+    const gn = /\{gn(:\d+)?\}/.test(pattern) ? next(`${device.kind}:${group.toLowerCase()}`) : 0;
+    const name = pattern
+      .replace(PLACEHOLDER, (whole, key: string, width?: string) => {
+        const pad = (value: number): string => String(value).padStart(Number(width ?? 0), '0');
+        switch (key) {
+          case 'n':
+            return pad(n);
+          case 'gn':
+            return pad(gn);
+          case 'serial':
+            return device.serial;
+          case 'last4':
+            return device.serial.slice(-4);
+          case 'model':
+            return modelFromSerial(device);
+          case 'group':
+            return group;
+          default:
+            unknown.add(whole);
+            return whole;
+        }
+      })
+      // The same characters readDevices strips from a typed name.
+      .replace(/[()<>'#"]/g, '')
+      .trim();
+
+    const key = `${device.kind}:${name.toLowerCase()}`;
+    const other = used.get(key);
+    if (other !== undefined) {
+      warnings.push({
+        line: device.row,
+        message: `${device.serial}: the name pattern gives "${name}", which row ${other} already has`,
+      });
+    } else {
+      used.set(key, device.row);
+    }
+    return { ...device, name };
+  });
+
+  for (const placeholder of unknown) {
+    warnings.push({
+      message: `name pattern: ${placeholder} is not a placeholder, so it is kept as typed. Use {n}, {gn}, {serial}, {last4}, {model}, or {group}`,
+    });
+  }
+  return named;
+}
 
 interface KnownGroups {
   switchGroups: Map<string, ExistingGroup> | null;
