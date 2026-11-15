@@ -248,3 +248,18 @@ describe('parseSheet versions and runOn', () => {
     expect(s.entries?.map((e) => e.description)).toEqual(['See note [7.4]', 'Uses tcp[13]']);
   });
 });
+
+describe('parseSheet table blocks', () => {
+  it('reads value - meaning rows as plain text entries', () => {
+    const s = parseSheet(sheet('```table', 'UDP 5246 - CAPWAP control', '100-144 - UNII-2C: DFS', '802.3af - 15.4 W', '```'));
+    expect(s.entries).toEqual([
+      { text: 'UDP 5246', description: 'CAPWAP control' },
+      { text: '100-144', description: 'UNII-2C: DFS' },
+      { text: '802.3af', description: '15.4 W' },
+    ]);
+  });
+
+  it('rejects a row with no meaning', () => {
+    expect(() => parseSheet(sheet('```table', 'just a value', '```'))).toThrow(/table row/);
+  });
+});

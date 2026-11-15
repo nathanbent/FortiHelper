@@ -20,6 +20,9 @@ list. Keep examples generic: private or documentation addresses only.
 - <fortigate-ip> (ip) - FortiGate IP - e.g. 10.1.1.1
 - <fortilink-ip> (ip) - FortiLink interface IP - e.g. 10.255.1.1
 - <fortilink-mask> (mask) - FortiLink netmask - e.g. 255.255.255.0
+- <tftp-ip> (ip) - TFTP server IP - e.g. 10.1.1.50
+- <vlan-ip> (ip) - VLAN interface IP - e.g. 10.1.20.1
+- <vlan-mask> (mask) - VLAN netmask - e.g. 255.255.255.0
 - <ap-ip> (ip) - FortiAP IP - e.g. 10.1.30.20
 - <querier-ip> (ip) - IGMP querier IP - e.g. 10.1.20.1
 - <subnet-cidr> (cidr) - Subnet - e.g. 10.1.2.0/24
@@ -59,11 +62,22 @@ list. Keep examples generic: private or documentation addresses only.
 - <trunk-name> - Trunk name - e.g. uplink-lag
 - <instance> (number) - MST instance - e.g. 0
 - <vlan-id> (number) - VLAN ID - e.g. 20
+- <image-file> - Firmware image filename - e.g. FSW_124F-v7-build0500-FORTINET.out
+- <image-id> - Image ID from list-available - e.g. S124FF-IMG.swtp
+- <mac-policy-name> - MAC policy name - e.g. printers-vlan
+- <mac-pattern> - MAC address or pattern - e.g. 00:11:22:*:*:*
 
 ## FortiAP
 
 - <ap-serial> - FortiAP serial - e.g. FP231FTF20000000
 - <client-mac> - Client MAC address - e.g. 00:11:22:33:44:55
+- <ap-model> - FortiAP model - e.g. 231F
+- <ap-profile-name> - FortiAP profile name - e.g. office-231F
+- <ap-group-name> - AP group name - e.g. floor-2
+- <ssid-interface> - SSID interface name - e.g. corp-wifi
+- <ssid-name> - SSID as broadcast - e.g. Corp
+- <wifi-passphrase> - Wi-Fi passphrase
+- <radius-server-name> - RADIUS server object - e.g. nps-01
 
 ## VPN
 

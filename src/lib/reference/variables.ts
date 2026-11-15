@@ -41,7 +41,7 @@ export function placeholderLabel(name: string): string {
  * The UI masks these and keeps their value off the screen.
  */
 export function isSecretPlaceholder(name: string): boolean {
-  return /key|secret|password|passwd|psk/i.test(name);
+  return /key|secret|password|passwd|passphrase|psk/i.test(name);
 }
 
 /** One run of text: either literal, or a value that replaced a placeholder. */
