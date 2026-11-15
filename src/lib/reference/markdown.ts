@@ -49,6 +49,7 @@ import { parseVersion } from './versions';
  *
  *     ```commands   every line becomes its own copyable row
  *     ```colors     `<id> - <name>` rows, rendered with a swatch
+ *     ```table      `<value> - <meaning>` rows: plain reference data, no Copy button
  */
 
 /** A command row: `` `cmd` `` optionally followed by a dash and a description. */
@@ -168,6 +169,14 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
       if (info === 'commands') {
         for (const cmd of block.map((l) => l.trim()).filter(Boolean)) {
           entries.push({ command: cmd });
+        }
+      } else if (info === 'table') {
+        for (const row of block.map((l) => l.trim()).filter(Boolean)) {
+          // Split on the first spaced dash, so values such as "802.3af" or
+          // "100-144" keep their own hyphens.
+          const match = /^(.+?)\s+[-\u2013\u2014]\s+(.+)$/.exec(row);
+          if (!match) fail(`table row is not "<value> - <meaning>": ${row}`);
+          entries.push({ text: match![1].trim(), description: match![2].trim() });
         }
       } else if (info === 'colors') {
         for (const row of block.map((l) => l.trim()).filter(Boolean)) {

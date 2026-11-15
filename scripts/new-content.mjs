@@ -76,6 +76,7 @@ order: ${order}
 #   <placeholder> in a command           becomes a fill-in field; label it in
 #                                        content/reference-variables.md
 #   ### Heading, then a fenced block     a config snippet, copied whole
+#   a fenced block marked "table"        "value - meaning" rows, for reference data
 ---
 
 Replace this with a sentence on when to use this sheet.

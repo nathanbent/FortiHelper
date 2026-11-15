@@ -244,6 +244,8 @@ end
 - ```` ```commands ```` makes every line in the block its own row: handy for
   pasting a sequence you have no descriptions for
 - ```` ```colors ```` reads `<id> - <name>` rows and renders a swatch
+- ```` ```table ```` reads `<value> - <meaning>` rows as plain reference
+  data with no Copy button: port numbers, wattages, channel lists
 - a line starting with `>` straight after a command is shown under it as
   **Look for**: what its output should say, or what to do next
 - with `copyAll: true` the commands are a sequence and are numbered as steps
