@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FortiHelper: FortiGate Config Generators</title>
+    <!--
+      Preload the body and heading fonts so text does not reflow when they
+      arrive. The mono font is left to load on demand. Vite rewrites these
+      to the same fingerprinted files the stylesheet uses.
+    -->
+    <link rel="preload" href="/src/fonts/Karla-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/src/fonts/Rubik-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x1F6E1;&#xFE0F;</text></svg>" />
     <!--
       Apply a stored theme before first paint so a dark-mode user never sees a
