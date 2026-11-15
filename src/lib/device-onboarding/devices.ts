@@ -3,7 +3,7 @@ import { columnLabel, parseSpreadsheet } from '../object-helper/spreadsheet';
 import type { SpreadsheetTable } from '../object-helper/spreadsheet';
 
 /**
- * Reading a device list — serial number, name, comment, FortiCloud key —
+ * Reading a device list (serial number, name, comment, FortiCloud key)
  * out of a pasted or loaded table.
  */
 
@@ -81,8 +81,8 @@ export function cleanSerial(cell: string): string {
 
 /**
  * Device family from the serial's product code. FortiAP serials start `FP`
- * (FP231F…), FortiAP-U `PU`, FortiAP-S `PS`, FortiAP-C `FAP`/`PC`;
- * FortiSwitch serials start `S` (S248EP…, SR12DP…) or `FS` (FS1E48…).
+ * (FP231F...), FortiAP-U `PU`, FortiAP-S `PS`, FortiAP-C `FAP`/`PC`;
+ * FortiSwitch serials start `S` (S248EP..., SR12DP...) or `FS` (FS1E48...).
  */
 export function kindFromSerial(serial: string): DeviceKind | null {
   if (/^(FP|FAP|PU|PS|PC)/.test(serial)) return 'ap';
@@ -92,7 +92,7 @@ export function kindFromSerial(serial: string): DeviceKind | null {
 
 /**
  * The model part of a FortiAP serial, as the default profile names spell
- * it: FP231F… → 231F, PU431F… → U431F, PS221E… → S221E. Null when the
+ * it: FP231F... -> 231F, PU431F... -> U431F, PS221E... -> S221E. Null when the
  * serial is not a recognisable FortiAP one.
  */
 export function apModelFromSerial(serial: string): string | null {
@@ -115,7 +115,7 @@ function serialScore(cell: string): number {
   return kindFromSerial(s) ? 2 : 1;
 }
 
-/** Tab, comma, or semicolon — whichever the first lines are split by. */
+/** Tab, comma, or semicolon: whichever the first lines are split by. */
 export function detectDelimiter(text: string): '\t' | ',' | ';' {
   const sample = text.split(/\r\n|[\n\r]/).filter((l) => l.trim() !== '').slice(0, 20);
   // A tab never appears inside a serial, a name, or a key, so one tab
@@ -299,7 +299,7 @@ export function readDevices(
     if (kind === null) {
       warnings.push({
         line,
-        message: `cannot tell whether ${serial} is a FortiSwitch or a FortiAP; skipped — set Device type, or add a Type column`,
+        message: `cannot tell whether ${serial} is a FortiSwitch or a FortiAP; skipped: set Device type, or add a Type column`,
       });
       skipped++;
       continue;
@@ -322,7 +322,7 @@ export function readDevices(
     if (!SERIAL_SHAPE.test(serial)) {
       warnings.push({
         line,
-        message: `${serial} is ${serial.length} characters; Fortinet serial numbers are 16 letters and digits — check it`,
+        message: `${serial} is ${serial.length} characters; Fortinet serial numbers are 16 letters and digits: check it`,
       });
     }
 
@@ -332,7 +332,7 @@ export function readDevices(
       warnings.push({
         line,
         kind: 'fix',
-        message: `name "${rawName}" → "${name}" (FortiOS refuses ( ) < > ' # " in names)`,
+        message: `name "${rawName}" \u2192 "${name}" (FortiOS refuses ( ) < > ' # " in names)`,
       });
     }
     if (name) {
@@ -362,7 +362,7 @@ export function readDevices(
 
 /**
  * A starter CSV: every column the tool reads, with two example rows that
- * show the shape. Only the serial number is required — the rest can be
+ * show the shape. Only the serial number is required: the rest can be
  * left blank or the column deleted. Type is read from the serial when
  * blank; Group and Profile override the tool's options for that row.
  */

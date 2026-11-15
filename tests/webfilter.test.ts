@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { generateWebfilter, type WebfilterOptions } from '../src/lib/webfilter';
 
 // @types/node is not installed in this project, so access node:fs through
-// process.getBuiltinModule (Node >= 20.16) with a minimal local declaration —
+// process.getBuiltinModule (Node >= 20.16) with a minimal local declaration:
 // keeps `tsc --noEmit` clean without adding dependencies.
 declare const process: {
   getBuiltinModule(name: 'node:fs'): {
@@ -364,7 +364,7 @@ describe('generateWebfilter set exempt', () => {
     });
     expect(output).not.toContain('set exempt');
     expect(warnings.map((w) => w.message)).toContain(
-      'set exempt is only used when the action is exempt — ignored',
+      'set exempt is only used when the action is exempt, ignored',
     );
   });
 
@@ -492,7 +492,7 @@ describe('per-entry actions', () => {
     expect(on.output).toContain('set action block');
   });
 
-  it('maps vendor verbs and flags the warn → monitor mapping', () => {
+  it('maps vendor verbs and flags the warn \u2192 monitor mapping', () => {
     const { output, warnings } = generateWebfilter('a.com-permit\nb.com-warn\nc.com-bypass\n', {
       ...opts,
       vendorVerbs: true,

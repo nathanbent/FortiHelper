@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-// @ts-expect-error — plain JS script, no types, imported for its rules.
+// @ts-expect-error plain JS script, no types, imported for its rules.
 import { scanText } from '../scripts/check-secrets.mjs';
 
 /** Rule ids found in some text. */

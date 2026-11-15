@@ -1,4 +1,4 @@
-/** Matching and mutation engine — port of matches/do_append/do_remove/do_set/apply_rules. */
+/** Matching and mutation engine: port of matches/do_append/do_remove/do_set/apply_rules. */
 import { entries, entryName, getSetting, q, unq } from './parser';
 import type { Condition, ConfigBlock, Entry, Rule } from './types';
 

@@ -128,7 +128,7 @@ export function parse(text: string): Root {
     ) {
       logical += line; // raw concat: rebuilds mid-token pager wraps
     }
-    // else: noise (banners, prompts) — dropped
+    // else: noise (banners, prompts), dropped
   }
   if (logical !== null) flush(logical);
   return root;

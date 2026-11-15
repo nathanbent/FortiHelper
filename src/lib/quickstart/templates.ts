@@ -14,7 +14,7 @@ export interface BundledTemplate {
 /**
  * Every template under content/quickstart/, inlined at build time.
  *
- * Adding one is adding a markdown file — its title and fields come from the
+ * Adding one is adding a markdown file: its title and fields come from the
  * file itself, so nothing here changes.
  *
  * The nested private/ directory is gitignored, so a build from a clean clone

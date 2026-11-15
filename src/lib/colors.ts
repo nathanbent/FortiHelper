@@ -1,7 +1,7 @@
 /**
  * FortiGate color ID table (IDs 1-32), from input-ideas/notes/colors.md.
  *
- * The hex values are approximate visual hints for the UI swatch only —
+ * The hex values are approximate visual hints for the UI swatch only:
  * FortiOS stores just the numeric ID (`set color <id>`), so the emitted
  * config is unaffected by these values.
  */

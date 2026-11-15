@@ -6,7 +6,7 @@
 config system session-helper
     delete 13
     end
-# 2. Change the default–voip–alg-mode to disable SIP-ALG.
+# 2. Change the default-voip-alg-mode to disable SIP-ALG.
 config system settings
     set default-voip-alg-mode kernel-helper-based
     end

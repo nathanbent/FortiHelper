@@ -13,7 +13,7 @@ import {
   type ReferenceSnippet,
 } from '../lib/reference';
 
-/** Wire a button to copy `text`, with brief "✓" feedback like outputPane. */
+/** Wire a button to copy `text`, with brief check-mark feedback like outputPane. */
 function copyButton(label: string, getText: () => string): HTMLButtonElement {
   const btn = el('button', 'btn', label);
   btn.addEventListener('click', async (event) => {
@@ -22,7 +22,7 @@ function copyButton(label: string, getText: () => string): HTMLButtonElement {
     event.stopPropagation();
     await navigator.clipboard.writeText(getText());
     const original = btn.textContent;
-    btn.textContent = '✓';
+    btn.textContent = '\u2713';
     setTimeout(() => (btn.textContent = original), 1200);
   });
   return btn;
@@ -73,7 +73,7 @@ export const referenceTool: Tool = {
     searchField.append(el('label', undefined, 'Search'));
     const search = el('input', 'ref-search');
     search.type = 'search';
-    search.placeholder = 'Command or description…';
+    search.placeholder = 'Command or description...';
     search.addEventListener('input', () => {
       query = search.value.trim().toLowerCase();
       applyFilter();
@@ -169,7 +169,7 @@ export const referenceTool: Tool = {
       for (const [cmd, buttons] of addButtons) {
         const on = picked.includes(cmd);
         for (const b of buttons) {
-          b.textContent = on ? '✓' : '+';
+          b.textContent = on ? '\u2713' : '+';
           b.classList.toggle('primary', on);
           b.title = on ? 'Remove from selection' : 'Add to selection';
         }
@@ -208,7 +208,7 @@ export const referenceTool: Tool = {
       heading.append(el('span', 'ref-title', section.title));
       const count = sectionItemCount(section);
       heading.append(
-        el('span', 'ref-tag', `${topicLabel(section.topic)} · ${count} item${count === 1 ? '' : 's'}`),
+        el('span', 'ref-tag', `${topicLabel(section.topic)} \u00b7 ${count} item${count === 1 ? '' : 's'}`),
       );
       head.append(heading);
 
@@ -322,7 +322,7 @@ export const referenceTool: Tool = {
 
       setShown(noMatches, visibleSections === 0);
       summary.textContent = visibleSections
-        ? `${visibleSections} sheet${visibleSections === 1 ? '' : 's'} · ${visibleItems} item${
+        ? `${visibleSections} sheet${visibleSections === 1 ? '' : 's'} \u00b7 ${visibleItems} item${
             visibleItems === 1 ? '' : 's'
           }`
         : '';

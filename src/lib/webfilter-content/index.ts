@@ -33,9 +33,9 @@ export const CONTENT_LANGS: { value: ContentLang; label: string }[] = [
 /**
  * Shape of the generated config.
  *
- * - `entries` — `edit "<pattern>"` bodies to paste inside an existing
+ * - `entries`: `edit "<pattern>"` bodies to paste inside an existing
  *               `config entries` block.
- * - `full`    — a complete `config webfilter content` list.
+ * - `full`:   a complete `config webfilter content` list.
  */
 export type ContentFormat = 'entries' | 'full';
 
@@ -43,15 +43,15 @@ export type ContentFormat = 'entries' | 'full';
 export const MAX_WILDCARD_PATTERN = 80;
 
 export interface WebContentOptions {
-  /** `set pattern-type …`. Default 'wildcard'. */
+  /** `set pattern-type ...`. Default 'wildcard'. */
   patternType?: ContentPatternType;
-  /** `set action …`. Default 'block'. */
+  /** `set action ...`. Default 'block'. */
   action?: ContentAction;
-  /** `set status …`, or 'omit' for no status line. Default 'enable'. */
+  /** `set status ...`, or 'omit' for no status line. Default 'enable'. */
   status?: 'enable' | 'disable' | 'omit';
-  /** `set lang …`. Default 'western'. */
+  /** `set lang ...`. Default 'western'. */
   lang?: ContentLang;
-  /** `set score …` applied to every pattern. Default 10. */
+  /** `set score ...` applied to every pattern. Default 10. */
   score?: number;
 
   /** Case-insensitive dedupe, keeping first occurrence. Default true. */
@@ -63,9 +63,9 @@ export interface WebContentOptions {
   format?: ContentFormat;
   /** `edit <id>` of the content list, `full` format only. Default 1. */
   listId?: number;
-  /** `set name …` of the content list, `full` format only. Default 'webfilter'. */
+  /** `set name ...` of the content list, `full` format only. Default 'webfilter'. */
   listName?: string;
-  /** `set comment …` of the content list, `full` format only. Omitted when empty. */
+  /** `set comment ...` of the content list, `full` format only. Omitted when empty. */
   comment?: string;
 
   /**
@@ -77,7 +77,7 @@ export interface WebContentOptions {
   /** Web filter profile edited by the binding block. Default 'webfilter'. */
   profileName?: string;
   /**
-   * `set bword-threshold …` in the binding block. A page is blocked once the
+   * `set bword-threshold ...` in the binding block. A page is blocked once the
    * summed score of its matching patterns reaches this. Default 10.
    */
   threshold?: number;
@@ -159,7 +159,7 @@ export function generateWebContent(
     if (quoteCount % 2 !== 0) {
       warnings.push({
         line: i + 1,
-        message: `"${s}" has an unbalanced quote — quote a whole phrase to match it exactly`,
+        message: `"${s}" has an unbalanced quote: quote a whole phrase to match it exactly`,
       });
     }
 

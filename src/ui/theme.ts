@@ -15,7 +15,7 @@ export function loadTheme(): Theme {
     const stored = localStorage.getItem(THEME_KEY);
     return isTheme(stored) ? stored : 'system';
   } catch {
-    // Private-mode or blocked storage — fall back to the system setting.
+    // Private-mode or blocked storage: fall back to the system setting.
     return 'system';
   }
 }

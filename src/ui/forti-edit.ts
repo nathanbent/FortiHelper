@@ -60,7 +60,7 @@ export const fortiEditTool: Tool = {
   id: 'forti-edit',
   title: 'Forti Edit',
   description:
-    'Bulk query and edit pasted FortiOS config or show output — match entries by field conditions, then append, remove, or replace values.',
+    'Bulk query and edit pasted FortiOS config or show output: match entries by field conditions, then append, remove, or replace values.',
   mount(container) {
     let text = '';
     let section = 'firewall policy';
@@ -107,8 +107,8 @@ export const fortiEditTool: Tool = {
       selectField(
         'Output mode',
         [
-          { value: 'delta', label: 'delta — only changed entries' },
-          { value: 'full', label: 'full — rebuild whole section' },
+          { value: 'delta', label: 'delta: only changed entries' },
+          { value: 'full', label: 'full: rebuild whole section' },
         ],
         mode,
         (v) => {
@@ -244,7 +244,7 @@ export const fortiEditTool: Tool = {
         c.value = value.value;
         recompute();
       });
-      const rm = el('button', 'btn', '×');
+      const rm = el('button', 'btn', '\u00d7');
       rm.title = 'Remove condition';
       rm.addEventListener('click', () => {
         rule.where.splice(rule.where.indexOf(c), 1);
@@ -270,7 +270,7 @@ export const fortiEditTool: Tool = {
       const value = el('input');
       value.value = m.value;
       const syncValue = () => {
-        value.placeholder = m.kind === 'set' ? 'value1,value2,…' : 'value';
+        value.placeholder = m.kind === 'set' ? 'value1,value2,...' : 'value';
       };
       syncValue();
       kind.addEventListener('change', () => {
@@ -286,7 +286,7 @@ export const fortiEditTool: Tool = {
         m.value = value.value;
         recompute();
       });
-      const rm = el('button', 'btn', '×');
+      const rm = el('button', 'btn', '\u00d7');
       rm.title = 'Remove mutation';
       rm.addEventListener('click', () => {
         rule.muts.splice(rule.muts.indexOf(m), 1);
@@ -346,7 +346,7 @@ export const fortiEditTool: Tool = {
         const desc = m.conditions.map((c) => c.join(':')).join(' AND ') || '(all)';
         const n = m.entries.length;
         previewBox.append(
-          el('div', undefined, `Rule ${i + 1}: ${desc} → ${n} entr${n === 1 ? 'y' : 'ies'}`),
+          el('div', undefined, `Rule ${i + 1}: ${desc} \u2192 ${n} entr${n === 1 ? 'y' : 'ies'}`),
         );
         for (const e of m.entries) {
           const line = el('div', undefined, `edit ${e.key}${e.name ? '  ' + e.name : ''}`);
@@ -361,7 +361,7 @@ export const fortiEditTool: Tool = {
       if (importNote) warnings.push({ message: importNote });
       if (text.trim() === '') {
         renderPreview(null, 'Paste config on the left to preview matches.');
-        warnings.push({ message: 'No input — paste FortiOS config or show output.' });
+        warnings.push({ message: 'No input: paste FortiOS config or show output.' });
         output.update('', '', warnings);
         return;
       }

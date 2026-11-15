@@ -7,7 +7,7 @@ order: 10
 # Disable SIP-ALG
 
 ## How to use
-1. Read the generated config — this changes how the firewall treats all VoIP traffic
+1. Read the generated config: this changes how the firewall treats all VoIP traffic
 2. Paste the config sections, then run the session-clear commands
 3. Re-register handsets and confirm audio both ways
 

@@ -1,12 +1,12 @@
 ---
 id: fortiswitch-qos
-title: FortiSwitch — QoS
+title: FortiSwitch: QoS
 topic: fortiswitch
 kind: config
 order: 64.4
 ---
 
-Run on the FortiGate, not the switch. Starting templates, not verified on every release — option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Run on the FortiGate, not the switch. Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
 
 ### Map 802.1p (CoS) values to egress queues
 
@@ -73,7 +73,7 @@ end
 
 ### QoS policy tying the maps and queue policy together
 
-Trust either 802.1p or DSCP on a port, not both — when both are set the switch goes by DSCP. default-cos is used for untagged traffic.
+Trust either 802.1p or DSCP on a port, not both: when both are set the switch goes by DSCP. default-cos is used for untagged traffic.
 
 ```
 config switch-controller qos qos-policy

@@ -508,7 +508,7 @@ details.fixes ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
 .ref-snippet .desc { display: block; color: var(--secondary); font-size: 0.85rem; }
 
 /* Reference snippets are short and meant to be read, so let them show in
-   full rather than scrolling inside the card — the page scrolls instead. */
+   full rather than scrolling inside the card: the page scrolls instead. */
 .ref-snippet pre.output { margin-top: 0.5rem; max-height: none; }
 
 .ref-entry {

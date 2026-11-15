@@ -28,7 +28,7 @@ const app = document.getElementById('app')!;
 
 const header = el('header', 'shell-header');
 const title = el('h1');
-title.append(document.createTextNode('🛡️ FortiHelper'), el('span', 'beta', 'beta'));
+title.append(document.createTextNode('\u{1F6E1}\uFE0F FortiHelper'), el('span', 'beta', 'beta'));
 const nav = el('nav', 'shell-nav');
 header.append(title, nav, themePicker());
 
@@ -39,7 +39,7 @@ applyTheme(loadTheme());
 const main = el('main', 'tool-main');
 const footer = el('footer', 'shell-footer');
 footer.innerHTML =
-  'Runs entirely in your browser — nothing you paste leaves this page ' +
+  'Runs entirely in your browser: nothing you paste leaves this page ' +
   '(except optional DNS lookups via DNS-over-HTTPS). ' +
   `<a href="${__REPO_URL__}" target="_blank" rel="noopener">Source</a>`;
 
@@ -58,7 +58,7 @@ for (const tool of tools) {
   if (NAV_BREAKS.has(tool.id)) nav.append(el('span', 'nav-sep'));
 }
 
-/** `#/tool/param` → the tool id and whatever follows it. */
+/** `#/tool/param` -> the tool id and whatever follows it. */
 function currentRoute(): { id: string; param?: string } {
   const path = location.hash.replace(/^#\//, '');
   const slash = path.indexOf('/');

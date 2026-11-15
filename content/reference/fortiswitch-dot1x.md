@@ -1,12 +1,12 @@
 ---
 id: fortiswitch-dot1x
-title: FortiSwitch — 802.1X port security
+title: FortiSwitch: 802.1X port security
 topic: fortiswitch
 kind: config
 order: 64.2
 ---
 
-Run on the FortiGate, not the switch. Starting templates, not verified on every release — option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Run on the FortiGate, not the switch. Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
 
 ### 802.1X security policy
 

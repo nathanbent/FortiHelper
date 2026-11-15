@@ -18,15 +18,15 @@ function saveTemplate(markdown: string | null): void {
     if (markdown === null) localStorage.removeItem(SAVED_TEMPLATE_KEY);
     else localStorage.setItem(SAVED_TEMPLATE_KEY, markdown);
   } catch {
-    // Storage blocked — the template just will not survive a reload.
+    // Storage blocked: the template just will not survive a reload.
   }
 }
 
 /**
  * A fill-in-the-blanks panel for a quickstart template.
  *
- * The form is built from the template itself — one field per variable in its
- * `## Variables` list — so supplying a different template repopulates it with
+ * The form is built from the template itself: one field per variable in its
+ * `## Variables` list, so supplying a different template repopulates it with
  * no code changes.
  */
 export function quickstartPanel(initialMarkdown: string): HTMLElement {
@@ -35,7 +35,7 @@ export function quickstartPanel(initialMarkdown: string): HTMLElement {
   let template: QuickstartTemplate = parseQuickstart(initialMarkdown);
   let values: Record<string, string> = {};
 
-  // A template pasted or loaded here is kept in this browser only — the app
+  // A template pasted or loaded here is kept in this browser only: the app
   // makes no requests, so it never leaves the machine. That is what lets a
   // private template be used on the public build without committing it. The
   // index lists it as its own card; this panel always renders what it is
@@ -59,7 +59,7 @@ export function quickstartPanel(initialMarkdown: string): HTMLElement {
   const savedNote = el('p', 'ref-note', '');
   const sourceRow = el('div', 'btn-row');
   const useBtn = el('button', 'btn primary', 'Use this template');
-  const fileBtn = el('button', 'btn', 'Load file…');
+  const fileBtn = el('button', 'btn', 'Load file...');
   const forgetBtn = el('button', 'btn', 'Forget saved template');
   const fileInput = el('input');
   fileInput.type = 'file';
@@ -135,7 +135,7 @@ export function quickstartPanel(initialMarkdown: string): HTMLElement {
         el(
           'span',
           'hint',
-          `${variable.name} · ${variable.occurrences} use${variable.occurrences === 1 ? '' : 's'}`,
+          `${variable.name} \u00b7 ${variable.occurrences} use${variable.occurrences === 1 ? '' : 's'}`,
         ),
       );
       rows.push(field);
@@ -157,7 +157,7 @@ export function quickstartPanel(initialMarkdown: string): HTMLElement {
     const filled = template.variables.filter((v) => (values[v.name] ?? '').trim()).length;
     output.update(
       text,
-      `${filled}/${template.variables.length} filled · ${replaced} substitution${
+      `${filled}/${template.variables.length} filled \u00b7 ${replaced} substitution${
         replaced === 1 ? '' : 's'
       }`,
       warnings,

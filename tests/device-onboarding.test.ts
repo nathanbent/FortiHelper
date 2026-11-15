@@ -465,7 +465,7 @@ describe('readXlsx', () => {
       ['FP231FTF00000004', 'AP-Conf-A', '', '12345'],
     ]);
 
-    // …and the text it becomes parses back into the same devices.
+    // ...and the text it becomes parses back into the same devices.
     const { devices, warnings } = load(rowsToTsv(sheets[0].rows));
     expect(warnings).toEqual([]);
     expect(devices.map((d) => d.row)).toEqual([2, 3, 5, 6]);

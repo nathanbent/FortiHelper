@@ -1,6 +1,6 @@
 /** A tool that can be mounted into the FortiHelper shell. */
 export interface Tool {
-  /** URL-hash id, e.g. "object-helper" → #/object-helper */
+  /** URL-hash id, e.g. "object-helper" -> #/object-helper */
   id: string;
   /** Short name shown in the nav. */
   title: string;
@@ -9,8 +9,8 @@ export interface Tool {
   /**
    * Render the tool's UI into the given container. Called once per mount.
    *
-   * `param` is the rest of the route after the tool id — `#/quickstart/vpn`
-   * mounts the quickstart tool with `'vpn'` — so a tool can be deep-linked to
+   * `param` is the rest of the route after the tool id: `#/quickstart/vpn`
+   * mounts the quickstart tool with `'vpn'`, so a tool can be deep-linked to
    * a specific view. Tools that do not use it can ignore it.
    */
   mount(container: HTMLElement, param?: string): void;

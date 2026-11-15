@@ -34,7 +34,7 @@ const PLACEHOLDER = [
 const TYPE_HINTS: Record<UrlFilterType | 'auto', string> = {
   auto: 'domains containing * become wildcard entries, the rest simple',
   simple: 'matches the full URL; subdomains also match (slack.com matches hooks.slack.com)',
-  wildcard: '*facebook.com matches www.facebook.com, message.facebook.com, …',
+  wildcard: '*facebook.com matches www.facebook.com, message.facebook.com, ...',
   regex: 'matches on regular expression rules',
 };
 
@@ -96,7 +96,7 @@ export const webfilterTool: Tool = {
 
     /**
      * Rebuild the options panel. Called by the controls that change which
-     * fields are relevant (format, type, action) — text and number inputs
+     * fields are relevant (format, type, action): text and number inputs
      * only regenerate, so they keep focus while typing.
      */
     function renderOptions() {
@@ -142,7 +142,7 @@ export const webfilterTool: Tool = {
             { value: 'simple', label: 'simple' },
             { value: 'wildcard', label: 'wildcard' },
             { value: 'regex', label: 'regex' },
-            { value: '', label: '(omit — FortiOS defaults to simple)' },
+            { value: '', label: '(omit: FortiOS defaults to simple)' },
           ],
           state.type ?? '',
           (v) => {
@@ -167,7 +167,7 @@ export const webfilterTool: Tool = {
           (v) => {
             state.action = v as UrlFilterAction;
             // The exempt flags only apply to the exempt action, and their
-            // control is hidden otherwise — drop them rather than leave a
+            // control is hidden otherwise: drop them rather than leave a
             // warning about a field the user can no longer see.
             if (state.action !== 'exempt') state.exempt = [];
             renderOptions();
@@ -197,7 +197,7 @@ export const webfilterTool: Tool = {
             renderOptions();
             regenerate();
           },
-          'contoso.com-block, zombo.com-exempt — lines without a suffix use the action above',
+          'contoso.com-block, zombo.com-exempt: lines without a suffix use the action above',
         ),
       );
 
@@ -226,8 +226,8 @@ export const webfilterTool: Tool = {
               state.vendorVerbs = v;
               regenerate();
             },
-            'deny/drop/reject → block · permit/pass/accept → allow · warn/log → monitor · ' +
-              'bypass/skip → exempt — for Sophos, WatchGuard, SonicWall, Lightspeed exports',
+            'deny/drop/reject \u2192 block \u00b7 permit/pass/accept \u2192 allow \u00b7 warn/log \u2192 monitor \u00b7 ' +
+              'bypass/skip \u2192 exempt, for Sophos, WatchGuard, SonicWall, Lightspeed exports',
           ),
         );
       }
@@ -259,9 +259,9 @@ export const webfilterTool: Tool = {
           selectField(
             'Wildcard prefix',
             [
-              { value: 'none', label: 'none — use domains as typed' },
-              { value: '*', label: '* — *facebook.com' },
-              { value: '*.', label: '*. — *.facebook.com' },
+              { value: 'none', label: 'none: use domains as typed' },
+              { value: '*', label: '* (*facebook.com)' },
+              { value: '*.', label: '*. (*.facebook.com)' },
             ],
             state.wildcardPrefix,
             (v) => {
@@ -340,7 +340,7 @@ export const webfilterTool: Tool = {
             selectField(
               'Include subdomains',
               [
-                { value: '', label: '(omit — FortiOS defaults to enable)' },
+                { value: '', label: '(omit: FortiOS defaults to enable)' },
                 { value: 'enable', label: 'enable' },
                 { value: 'disable', label: 'disable' },
               ],
@@ -367,7 +367,7 @@ export const webfilterTool: Tool = {
               renderOptions();
               regenerate();
             },
-            'appends config webfilter profile … set urlfilter-table',
+            'appends config webfilter profile ... set urlfilter-table',
           ),
         );
 
@@ -406,7 +406,7 @@ export const webfilterTool: Tool = {
           `${stats.duplicatesRemoved} duplicate${stats.duplicatesRemoved === 1 ? '' : 's'} removed`,
         );
       }
-      output.update(script, parts.join(' · '), warnings);
+      output.update(script, parts.join(' \u00b7 '), warnings);
     }
 
     renderOptions();

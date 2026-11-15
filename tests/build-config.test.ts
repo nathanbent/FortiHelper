@@ -10,7 +10,7 @@ const read = (rel: string) => fs.readFileSync(new URL(`../${rel}`, import.meta.u
 /**
  * The repo name lives in exactly one place so that publishing under a
  * different name is a one-line change (see SPLIT.md). These guard that it
- * stays that way — a hardcoded name here is a blank-page deploy later.
+ * stays that way: a hardcoded name here is a blank-page deploy later.
  */
 describe('the repo name has a single source', () => {
   const pkg = JSON.parse(read('package.json')) as { repository?: { url?: string } };

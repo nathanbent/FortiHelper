@@ -40,7 +40,7 @@ describe('reference content', () => {
     expect(sectionItemCount(section)).toBeGreaterThan(0);
 
     for (const entry of section.entries ?? []) {
-      // Exactly one of command/text — the UI renders `command ?? text`, so
+      // Exactly one of command/text: the UI renders `command ?? text`, so
       // setting both silently drops one.
       const hasCommand = entry.command !== undefined;
       const hasText = entry.text !== undefined;

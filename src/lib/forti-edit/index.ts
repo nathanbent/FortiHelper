@@ -1,4 +1,4 @@
-/** Forti Edit — bulk query-and-edit for FortiOS config, port of forti-edit.py. */
+/** Forti Edit: bulk query-and-edit for FortiOS config, port of forti-edit.py. */
 import { applyRules, dryRun } from './engine';
 import { emitDelta, emitFullBlock } from './emit';
 import { entryName, findBlock, parse } from './parser';
@@ -58,7 +58,7 @@ export function changeSummary(count: number, section: string): string {
   return s;
 }
 
-/** Parse, apply rules to the named section, and emit — the whole CLI run. */
+/** Parse, apply rules to the named section, and emit: the whole CLI run. */
 export function runFortiEdit(
   text: string,
   section: string,

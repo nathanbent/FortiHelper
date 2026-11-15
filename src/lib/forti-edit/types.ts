@@ -41,7 +41,7 @@ export interface Root {
 export const MATCH_OPS = ['contains', 'not-contains', 'equals', 'exists', 'absent'] as const;
 export type MatchOp = (typeof MATCH_OPS)[number];
 
-/** [field, op, value] — op should be a MatchOp; kept as plain strings for JSON parity. */
+/** [field, op, value]: op should be a MatchOp; kept as plain strings for JSON parity. */
 export type Condition = [string, string, string];
 
 /** One rule, same shape as an element of the rules-file "rules" array. */

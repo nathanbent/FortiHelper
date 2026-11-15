@@ -1,6 +1,6 @@
 ---
 id: ipsec-debug-filter
-title: IPsec — filtered IKE debug
+title: IPsec: filtered IKE debug
 topic: ipsec
 kind: diagnostics
 copyAll: true

@@ -17,7 +17,7 @@ import { MAX_OBJ_NAME_LEN, withDefaults } from './types';
  * UI can recommend turning it on.
  */
 
-/** Rows/objects each normalization fix would change — counted while it is off. */
+/** Rows/objects each normalization fix would change: counted while it is off. */
 export interface NormalizeIssues {
   /** Values that are URLs, host:port, defanged, or carry a trailing dot. */
   urlLike: number;
@@ -101,7 +101,7 @@ export function normalizeRecords(
     }
 
     // A URL in the name slot (an address list read as pairs) would put
-    // "https://" into the object name — reduce it to the host as well.
+    // "https://" into the object name: reduce it to the host as well.
     if (name !== null && /^[a-z][a-z0-9+.-]*:\/\//i.test(name.trim()) && !isAddressLike(name, opts)) {
       const cleaned = cleanAddress(name);
       if (isAddressLike(cleaned, opts)) {
@@ -159,7 +159,7 @@ export function fitName(head: string, tail = '', max = MAX_OBJ_NAME_LEN): string
   return (cut || head.slice(0, budget)) + tail;
 }
 
-/** `name`, or `name-2`, `name-3`, … (kept within `max`) — the first one not taken. */
+/** `name`, or `name-2`, `name-3`, ... (kept within `max`): the first one not taken. */
 export function uniqueName(
   name: string,
   taken: (candidate: string) => boolean,
@@ -188,7 +188,7 @@ export interface InputFormat {
 export interface ModeRecommendation extends InputFormat {
   /** Most rows have the address first, so the swap fix should be on too. */
   swap: boolean;
-  /** Fraction (0–1) of the input this format reads as valid entries. */
+  /** Fraction (0-1) of the input this format reads as valid entries. */
   coverage: number;
   /** Short explanation for the UI. */
   reason: string;
@@ -214,7 +214,7 @@ function evaluateRecords(
   for (const r of records) {
     if (looseAddress(r.value, opts)) {
       // A name that is itself an IP or a URL means an address list is
-      // being read as pairs — that row is misread, not good. (A plain
+      // being read as pairs: that row is misread, not good. (A plain
       // hostname as the name of an IP is a normal naming choice.)
       // Likewise a "comment" that is just another address.
       const misread =
@@ -233,7 +233,7 @@ function evaluateRecords(
   };
 }
 
-/** An IP, CIDR, range, or URL — never a deliberate object name. */
+/** An IP, CIDR, range, or URL: never a deliberate object name. */
 function addressShapedName(name: string, opts: { lowercaseFqdn: boolean }): boolean {
   const n = name.trim();
   if (tryParseIpNetwork(n) !== null || tryParseIpRange(n) !== null) return true;
@@ -271,20 +271,20 @@ function describe(format: InputFormat, swap: boolean): string {
   switch (format.mode) {
     case 'plain':
       return format.useInputComment
-        ? 'Lines alternate address / comment — read the second line as the comment.'
-        : 'Each line is a single address — use one entry per line.';
+        ? 'Lines alternate address / comment: read the second line as the comment.'
+        : 'Each line is a single address: use one entry per line.';
     case 'pairs':
       return swap
-        ? 'Lines alternate address / name — read them as pairs with the address first.'
-        : 'Lines alternate name / address — read them as name + value pairs.';
+        ? 'Lines alternate address / name: read them as pairs with the address first.'
+        : 'Lines alternate name / address: read them as name + value pairs.';
     case 'delimited': {
       const d = format.delimiter;
       return swap
-        ? `Lines look like address${d}name — split on '${d}' with the address first.`
-        : `Lines look like name${d}address — split on '${d}'.`;
+        ? `Lines look like address${d}name: split on '${d}' with the address first.`
+        : `Lines look like name${d}address: split on '${d}'.`;
     }
     case 'spreadsheet':
-      return 'Lines contain tab-separated columns — read them as a spreadsheet paste.';
+      return 'Lines contain tab-separated columns: read them as a spreadsheet paste.';
   }
 }
 
@@ -296,7 +296,7 @@ function sameFormat(a: InputFormat, b: InputFormat): boolean {
 }
 
 /**
- * Suggest input formats that read the text better than the current one —
+ * Suggest input formats that read the text better than the current one:
  * e.g. "name: address" lines pasted in one-per-line mode, alternating
  * name / address lines, or an address-first layout. Returns the best
  * candidates (ties included, at most two), or [] when the current format

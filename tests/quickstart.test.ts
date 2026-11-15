@@ -127,7 +127,7 @@ describe('parseQuickstart', () => {
   });
 
   it('supports en dash and em dash separators in the Variables list', () => {
-    const t = parseQuickstart('# T\n\n## Variables\n- <a> — Label — e.g. sample\n\n```\n<a>\n```');
+    const t = parseQuickstart('# T\n\n## Variables\n- <a> \u2014 Label \u2014 e.g. sample\n\n```\n<a>\n```');
     expect(t.variables[0]).toMatchObject({ description: 'Label', example: 'sample' });
   });
 
@@ -143,7 +143,7 @@ describe('parseQuickstart front matter', () => {
   const withMeta = (...meta: string[]) =>
     ['---', ...meta, '---', '', '# Heading title', '', '## Variables', '- <a> - A', '', '```', '<a>', '```'].join('\n');
 
-  it('is optional — a template without it parses as before', () => {
+  it('is optional: a template without it parses as before', () => {
     const t = parseQuickstart(SAMPLE);
     expect(t.category).toBe('other');
     expect(t.description).toBe('');

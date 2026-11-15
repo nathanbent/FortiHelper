@@ -1,4 +1,4 @@
-# FortiNate — Web App Conversion Plan
+# FortiNate: Web App Conversion Plan
 
 Convert the Python CLI tools in `input-ideas/` into a single static web app
 ("FortiNate") hosted on GitHub Pages. All logic runs client-side; no backend.
@@ -33,18 +33,18 @@ Behavior to preserve (parity with the Python script):
 - Input parsing: inline `#`/`;` comment stripping; four record modes
   (plain lines, explicit name pairs, `name<delim>value` lines, input-comment
   pairs/triplets) with the same warning semantics for odd/incomplete groups.
-- Entry classification order: CIDR/IP network → IP range (incl. last-octet
-  shorthand `10.0.0.1-9`, reject end < start) → validated FQDN
+- Entry classification order: CIDR/IP network -> IP range (incl. last-octet
+  shorthand `10.0.0.1-9`, reject end < start) -> validated FQDN
   (wildcard `*.` allowed, URL-looking input rejected, label rules enforced).
 - Object emission: FQDN objects (`set type fqdn`), resolved /32 IP objects,
-  direct IP/CIDR subnet objects, iprange objects — same `edit/set/next`
+  direct IP/CIDR subnet objects, iprange objects: same `edit/set/next`
   layout, same option lines (comment, associated-interface, color,
   allow-routing, fabric-object, passive-fqdn-learning, cache-ttl).
 - Naming: prefix + delimiter, 79-char limit warning, quote/whitespace
   sanitization, indexed vs IP-underscore names for resolved IPs,
   `{prefix}` placeholder handling in group names.
 - Comment templates with `{fqdn}` `{ip}` `{resolved_at}` `{comment}`
-  placeholders; `"`→`'` replacement inside emitted comments.
+  placeholders; `"`->`'` replacement inside emitted comments.
 - Groups: all-objects group, per-FQDN groups, group options
   (type, category, comment, color, fabric-object).
 - Duplicate-name suppression with warnings; end-of-run stats counters.
@@ -53,7 +53,7 @@ Behavior to preserve (parity with the Python script):
 DNS resolution (`--ip-objects` equivalent) moves to `src/lib/dns.ts`:
 DoH A-record lookups, bounded concurrency (default 10), per-lookup timeout
 via AbortController (default 3s), max IPs per FQDN (default 20), sorted
-unique addresses — matching the Python resolver's semantics. Resolution is
+unique addresses, matching the Python resolver's semantics. Resolution is
 triggered by an explicit button (async), not on every keystroke.
 
 ### 2. Webfilter Generator (`input-ideas/webfilter-generator.py`)
@@ -73,27 +73,27 @@ Port as a pure function in `src/lib/webfilter/`:
 
 ```
 /                       repo root
-├── index.html          app shell
-├── vite.config.ts      base: '/FortiNate-beta/' for Pages
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── main.ts         router/tab switcher, tool registry
-│   ├── styles.css      shared styles (incl. dark mode via prefers-color-scheme)
-│   ├── lib/
-│   │   ├── object-helper/   pure generation logic + types
-│   │   ├── webfilter/       pure generation logic + types
-│   │   └── dns.ts           DoH resolver
-│   └── ui/
-│       ├── object-helper.ts form panel + wiring for tool 1
-│       ├── webfilter.ts     form panel + wiring for tool 2
-│       └── components.ts    shared bits: output pane, copy/download, warnings
-├── tests/
-│   ├── object-helper.test.ts
-│   ├── webfilter.test.ts
-│   └── fixtures/            golden files generated from the Python scripts
-├── .github/workflows/deploy.yml   build + deploy to GitHub Pages
-└── input-ideas/          original Python scripts (kept as reference)
+|-- index.html          app shell
+|-- vite.config.ts      base: '/FortiNate-beta/' for Pages
+|-- package.json
+|-- tsconfig.json
+|-- src/
+|   |-- main.ts         router/tab switcher, tool registry
+|   |-- styles.css      shared styles (incl. dark mode via prefers-color-scheme)
+|   |-- lib/
+|   |   |-- object-helper/   pure generation logic + types
+|   |   |-- webfilter/       pure generation logic + types
+|   |   `-- dns.ts           DoH resolver
+|   `-- ui/
+|       |-- object-helper.ts form panel + wiring for tool 1
+|       |-- webfilter.ts     form panel + wiring for tool 2
+|       `-- components.ts    shared bits: output pane, copy/download, warnings
+|-- tests/
+|   |-- object-helper.test.ts
+|   |-- webfilter.test.ts
+|   `-- fixtures/            golden files generated from the Python scripts
+|-- .github/workflows/deploy.yml   build + deploy to GitHub Pages
+`-- input-ideas/          original Python scripts (kept as reference)
 ```
 
 ## UI per tool
@@ -120,21 +120,21 @@ Port as a pure function in `src/lib/webfilter/`:
 GitHub Actions workflow: on push to `main`, `npm ci && npm run build`,
 upload `dist/` with `actions/upload-pages-artifact`, deploy with
 `actions/deploy-pages`. (Requires Pages to be enabled for the repo with
-"GitHub Actions" as the source — one-time manual step in repo settings.)
+"GitHub Actions" as the source: one-time manual step in repo settings.)
 
 ## Execution phases
 
-1. **Scaffold** — Vite + TS app shell, tab nav, shared styles/components,
+1. **Scaffold**: Vite + TS app shell, tab nav, shared styles/components,
    deploy workflow, test harness. (foundation, done first)
-2. **Webfilter tool** — port logic, build UI, unit + golden tests. (agent)
-3. **Object Helper tool** — port logic + DNS module, build UI, unit +
+2. **Webfilter tool**: port logic, build UI, unit + golden tests. (agent)
+3. **Object Helper tool**: port logic + DNS module, build UI, unit +
    golden tests. (agent, largest piece)
-4. **Integration & polish** — wire both tools into the shell, run full
+4. **Integration & polish**: wire both tools into the shell, run full
    build/tests, README with usage + screenshots, push.
 
 Phases 2 and 3 run as parallel agents once the scaffold exists.
 
-## Phase 2 — Forti Edit, color picker, reference notes
+## Phase 2: Forti Edit, color picker, reference notes
 
 Added after the initial two tools shipped. Sources: `input-ideas/forti-edit/`
 and `input-ideas/notes/`.
@@ -144,20 +144,20 @@ and `input-ideas/notes/`.
 Bulk query-and-edit for pasted FortiOS config / `show` output. Port as pure
 functions in `src/lib/forti-edit/`:
 
-- **Parser** — quote-aware tokenizer (quotes preserved on tokens, no escape
-  handling — parity with the Python), stack-based `config/edit/next/end`
+- **Parser**: quote-aware tokenizer (quotes preserved on tokens, no escape
+  handling: parity with the Python), stack-based `config/edit/next/end`
   tree, logical-line reconstruction of pager-wrapped `set`/`unset` values
   (raw concatenation), noise lines dropped outside config context.
-- **Matching** — `FIELD:OP:VALUE` conditions, AND-ed; ops
+- **Matching**: `FIELD:OP:VALUE` conditions, AND-ed; ops
   `contains | not-contains | equals | exists | absent`; literal token
   comparison on unquoted values (never substring).
-- **Mutations** — `append` (idempotent, re-emits whole field, quotes added
+- **Mutations**: `append` (idempotent, re-emits whole field, quotes added
   FortiOS-style), `remove`, `set`; `changed_fields` tracking per entry.
-- **Emit** — `delta` (only changed entries, only changed fields, `unset`
+- **Emit**: `delta` (only changed entries, only changed fields, `unset`
   when a field vanished) and `full` (whole section rebuild, 4-space
   indent, nested config blocks preserved); change summary (was stderr)
   becomes structured data for the UI.
-- **Rules** — same JSON shape as `add-x2.json`
+- **Rules**: same JSON shape as `add-x2.json`
   (`{section, rules:[{where, append, remove, set}]}`) for import/export.
 
 UI (`src/ui/forti-edit.ts`): config paste pane on the left; on the right a
@@ -173,9 +173,9 @@ match), covering delta/full, append/remove/set, rules-file mode, dry-run.
 
 ### 4. Object Helper color picker
 
-`input-ideas/notes/colors.md` maps FortiGate color IDs 1–32 to names.
+`input-ideas/notes/colors.md` maps FortiGate color IDs 1-32 to names.
 Replace the two bare "Color ID" number inputs (object + group color) with a
-dropdown of `ID — Name` plus an approximate color swatch. Emitted config is
+dropdown of `ID: Name` plus an approximate color swatch. Emitted config is
 unchanged (still `set color <id>`); data lives in `src/lib/colors.ts`.
 
 ### 5. Reference tab
@@ -189,4 +189,4 @@ Content is embedded at build time; adding a future note = one data entry.
 
 - No IPv6 support (the Python scripts are IPv4-only; parity first).
 - No persistence/sharing of configs (could add URL-param state later).
-- No FortiGate API integration — output is copy/paste CLI config only.
+- No FortiGate API integration: output is copy/paste CLI config only.
