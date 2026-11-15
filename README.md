@@ -399,7 +399,8 @@ dropdown option). Run `npm test` after editing content.
 
 ## About page and changelog
 
-The footer shows the version and links to an About page (`#/about`): version,
+The footer shows the version, and it and the last tab in the nav link to an
+About page (`#/about`): version,
 the commit the build was made from, a link to the author's site, and the
 changelog.
 

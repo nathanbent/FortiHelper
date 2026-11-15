@@ -6,7 +6,7 @@ this file, so keep the shape: a `## YYYY-MM-DD` heading per day, then one
 
 ## 2026-11-15
 
-- About page with version and build info, this changelog, and a footer link to it.
+- About page with version and build info, and this changelog, linked from the nav and the footer.
 - Reference: FortiLink bring-up, switch port, and FortiAP sheets, plus table blocks for port, PoE, and Wi-Fi channel lookups.
 - Reference: traffic, routing, SD-WAN, and HA sheets.
 - Reference: authentication, SSL VPN, ZTNA, and system sheets, plus a FortiSwitch and FortiAP names and IDs sheet.

@@ -24,7 +24,12 @@ const repoName = repoUrl.split('/').pop();
  */
 function git(...args: string[]): string {
   try {
-    return execFileSync('git', args, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return execFileSync('git', args, {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      // Dates are reported in UTC, not in whatever zone the committer was in.
+      env: { ...process.env, TZ: 'UTC' },
+    }).trim();
   } catch {
     return '';
   }
@@ -84,6 +89,6 @@ export default defineConfig({
     __REPO_URL__: JSON.stringify(repoUrl),
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_COMMIT__: JSON.stringify(git('rev-parse', 'HEAD')),
-    __BUILD_DATE__: JSON.stringify(git('log', '-1', '--format=%cs')),
+    __BUILD_DATE__: JSON.stringify(git('log', '-1', '--date=format-local:%Y-%m-%d', '--format=%cd')),
   },
 });
