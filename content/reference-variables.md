@@ -75,6 +75,9 @@ list. Keep examples generic: private or documentation addresses only.
 
 - <ap-serial> - FortiAP serial - e.g. FP231FTF20000000
 - <client-mac> - Client MAC address - e.g. 00:11:22:33:44:55
+- <switch-group-name> - Switch group name - e.g. IDF2
+- <switch-profile-name> - Switch profile name - e.g. default
+- <access-profile-name> - Access profile name - e.g. default
 - <ap-name> - AP name - e.g. Floor2-East
 - <ap-location> - AP location - e.g. Second floor, east corridor
 - <ap-model> - FortiAP model - e.g. 231F
