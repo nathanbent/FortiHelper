@@ -115,6 +115,51 @@ button, input, select, textarea { font-family: inherit; }
   font-size: 0.95rem;
 }
 
+/* Page help: collapsed reading matter under the page heading. It never
+   holds controls; those go in details.adv next to the options. */
+details.page-help {
+  margin: 0 0 1rem;
+  background: var(--entry);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+details.page-help > summary {
+  cursor: pointer;
+  padding: 0.45rem 0.8rem;
+  color: var(--secondary);
+  font-size: 0.9rem;
+}
+
+details.page-help > summary:hover { color: var(--content); }
+
+details.page-help > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
+
+.page-help-body {
+  max-width: 75ch;
+  padding: 0 0.8rem 0.6rem;
+  color: var(--content);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.page-help-body p { margin: 0.35rem 0; }
+.page-help-body strong { color: var(--primary); }
+
+.page-help-body a { color: var(--accent); }
+
+.page-help-body code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+
 .tool-layout {
   display: grid;
   grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.2fr);
@@ -139,6 +184,13 @@ button, input, select, textarea { font-family: inherit; }
 }
 
 .panel + .panel { margin-top: 1.25rem; }
+
+/* What pasting the output does to a device: always visible, above the output. */
+.paste-note {
+  margin: -0.25rem 0 0.75rem;
+  color: var(--secondary);
+  font-size: 0.85rem;
+}
 
 textarea.tool-input {
   width: 100%;
@@ -1123,3 +1175,15 @@ mark.ref-filled.ref-hit { padding: 0 0.15em; }
 .ref-import-list .desc { margin-right: auto; }
 
 .ref-badge-mine { border-color: var(--accent); color: var(--accent); }
+
+.batch-check {
+  font-size: 0.85rem;
+  color: var(--warn-text);
+  margin-bottom: 0.4rem;
+}
+
+.batch-check.ok { color: var(--ok); }
+
+.batch-check-list summary { cursor: pointer; color: var(--muted); }
+
+.batch-check-list ul { margin: 0.25rem 0 0; padding-left: 1.2rem; color: var(--text); }

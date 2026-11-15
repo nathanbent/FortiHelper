@@ -55,12 +55,13 @@ export function textField(
   return wrap;
 }
 
-/** Labeled number input field. */
+/** Labeled number input field, with an optional hint line underneath. */
 export function numberField(
   label: string,
   value: number,
   onInput: (v: number) => void,
   opts: { min?: number; max?: number; step?: number } = {},
+  hint?: string,
 ): HTMLDivElement {
   const wrap = el('div', 'field');
   const lab = el('label', undefined, label);
@@ -75,6 +76,7 @@ export function numberField(
     if (!Number.isNaN(n)) onInput(n);
   });
   wrap.append(lab, input);
+  if (hint) wrap.append(el('span', 'hint', hint));
   return wrap;
 }
 
@@ -145,10 +147,15 @@ export interface OutputPane {
 
 /**
  * Output panel with Copy / Download buttons, a stats line, and a warnings box.
+ *
+ * `pasteNote` is an always-visible line above the output for what pasting it
+ * does to a device. Anything that can change or overwrite existing config
+ * goes here (or in a field hint), not only in the page's help panel.
  */
-export function outputPane(downloadName: string): OutputPane {
+export function outputPane(downloadName: string, pasteNote?: string): OutputPane {
   const root = el('section', 'panel');
   root.append(el('h2', undefined, 'Generated config'));
+  if (pasteNote) root.append(el('p', 'paste-note', pasteNote));
 
   const btnRow = el('div', 'btn-row');
   const copyBtn = el('button', 'btn', 'Copy');
