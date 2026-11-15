@@ -86,7 +86,10 @@ carries the same split as hairline-separated groups.
   the FortiGate but not in the list is pointed out. Output is cut into **batches** (50 devices by default), each a
   complete block with its own Copy button that stays ticked once copied;
   group members are added with `append`, so pasting batch 2 does not undo
-  batch 1. The FortiCloud key is tracked rather than configured: it shows in
+  batch 1. Each batch also has a **Copy check** button: run those `show`
+  commands after pasting the batch, paste the output under **Check what
+  took**, and the batch is marked confirmed, or the devices that are missing
+  or still differ are listed. The FortiCloud key is tracked rather than configured: it shows in
   the device table and in the **inventory CSV** export (with each device's
   batch), and only reaches the config if you ask for it in the comment.
 

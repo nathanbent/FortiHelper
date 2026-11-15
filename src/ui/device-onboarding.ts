@@ -2,6 +2,8 @@ import type { Tool, Warning } from '../types';
 import { checkbox, el, numberField, selectField, setShown, textField } from './components';
 import { columnLabel } from '../lib/object-helper';
 import {
+  checkBatches,
+  checkCommands,
   DEVICE_FIELDS,
   detectDelimiter,
   detectDeviceColumns,
@@ -19,6 +21,7 @@ import {
 import type {
   AuthAction,
   Batch,
+  BatchCheck,
   DeviceColumns,
   DeviceField,
   DeviceKind,
@@ -105,6 +108,9 @@ export const deviceOnboardingTool: Tool = {
     let plan: DevicePlan[] = [];
     /** Pasted `show` output from the FortiGate, to skip what is already done. */
     let stateText = '';
+    /** Pasted output of a batch's check commands, to tick off what took. */
+    let checkText = '';
+    let checks: BatchCheck[] | null = null;
     /** Outputs already copied, so a batch stays ticked while it is unchanged. */
     const copied = new Set<string>();
 
@@ -535,7 +541,33 @@ export const deviceOnboardingTool: Tool = {
     );
     const warnBox = el('div', 'warnings');
     const fixBox = el('details', 'fixes');
-    outputPanel.append(outRow, stats, batchList, empty, warnBox, fixBox);
+    // --- checking what took ---
+    const checkBox = el('details', 'adv');
+    const checkSummary = el('summary', undefined, 'Check what took');
+    const checkArea = el('textarea', 'tool-input');
+    checkArea.placeholder =
+      'After pasting a batch, run its check commands and paste the output here.';
+    checkArea.spellcheck = false;
+    checkArea.wrap = 'off';
+    checkArea.addEventListener('input', () => {
+      checkText = checkArea.value;
+      regenerate();
+    });
+    const checkNote = el('div', 'stats');
+    checkNote.hidden = true;
+    checkBox.append(
+      checkSummary,
+      el(
+        'p',
+        'ref-note',
+        'Each batch has a Copy check button: run those commands on the FortiGate after pasting the batch, then paste what they print here. Long output pages unless the console is set to standard output (config system console, set output standard).',
+      ),
+      checkArea,
+      checkNote,
+    );
+    checkBox.hidden = true;
+
+    outputPanel.append(outRow, stats, checkBox, batchList, empty, warnBox, fixBox);
 
     downloadAllBtn.addEventListener('click', () =>
       download('switch-ap-onboarding.txt', joinBatches(batches), 'text/plain'),
@@ -573,9 +605,47 @@ export const deviceOnboardingTool: Tool = {
             done.textContent = 'Copied \u2713';
             card.classList.add('done');
           });
-          head.append(title, meta, done, copyBtn);
+          const commands = checkCommands(batch);
+          const checkBtn = el('button', 'btn', 'Copy check');
+          checkBtn.title = commands.join('\n');
+          checkBtn.addEventListener('click', async () => {
+            await navigator.clipboard.writeText(commands.join('\n') + '\n');
+            const before = checkBtn.textContent;
+            checkBtn.textContent = 'Copied \u2713';
+            setTimeout(() => (checkBtn.textContent = before), 1500);
+          });
+          head.append(title, meta, done, copyBtn, checkBtn);
           card.classList.toggle('done', copied.has(batch.output));
-          card.append(head, el('pre', 'output', batch.output));
+          card.append(head);
+
+          // What the pasted check output says about this batch.
+          const check = checks?.find((c) => c.index === batch.index);
+          if (check) {
+            const total = check.devices.length;
+            const line = el('div', 'batch-check');
+            if (check.confirmed === total) {
+              line.classList.add('ok');
+              line.textContent = `Confirmed \u2713 all ${total} on the FortiGate as wanted`;
+              card.classList.add('done');
+            } else {
+              const bits = [`${check.confirmed} of ${total} confirmed`];
+              if (check.pending) bits.push(`${check.pending} not yet`);
+              if (check.unchecked) bits.push(`${check.unchecked} not checked`);
+              line.textContent = bits.join(' \u00b7 ');
+              const open = check.devices.filter((d) => d.state !== 'confirmed');
+              const list = el('details', 'batch-check-list');
+              list.append(el('summary', undefined, 'Show which'));
+              const ul = el('ul');
+              for (const d of open) {
+                ul.append(el('li', undefined, `${d.device.serial}${d.device.name ? ` (${d.device.name})` : ''}: ${d.detail}`));
+              }
+              list.append(ul);
+              line.append(list);
+            }
+            card.append(line);
+          }
+
+          card.append(el('pre', 'output', batch.output));
           return card;
         }),
       );
@@ -694,6 +764,23 @@ export const deviceOnboardingTool: Tool = {
       } else {
         stateNote.textContent =
           'No switch or FortiAP config found in this text. Paste the output of the commands above.';
+      }
+
+      // Compare the batches with what the FortiGate shows after pasting.
+      const shown = parseExistingState(checkText);
+      checks = shown ? checkBatches(read.devices, opts, result, shown) : null;
+      setShown(checkBox, batches.length > 0 || checkText.trim() !== '');
+      setShown(checkNote, checkText.trim() !== '');
+      if (checks) {
+        const total = checks.reduce((n, c) => n + c.devices.length, 0);
+        const confirmed = checks.reduce((n, c) => n + c.confirmed, 0);
+        const fully = checks.filter((c) => c.confirmed === c.devices.length).length;
+        checkNote.textContent = `${confirmed} of ${plural(total, 'device')} confirmed \u00b7 ${fully} of ${plural(checks.length, 'batch', 'batches')} complete`;
+        checkSummary.textContent = `Check what took: ${confirmed} of ${total} confirmed`;
+      } else {
+        checkNote.textContent =
+          'No switch or FortiAP config found in this text. Paste the output of a batch\'s check commands.';
+        checkSummary.textContent = 'Check what took';
       }
 
       const isEmpty = batches.length === 0;
