@@ -54,7 +54,7 @@ list. Keep examples generic: private or documentation addresses only.
 
 ## FortiSwitch
 
-- <switch-id> - Switch ID - e.g. S108EN5918000000
+- <switch-id> - Switch ID (current name, or serial if never renamed) - e.g. S108EN5918000000
 - <FortiSwitch_serial_number> - FortiSwitch serial - e.g. S108EN5918000000
 - <switch-name> - Switch name - e.g. IDF2-SW01
 - <switch-description> - Switch description - e.g. Second floor, rack B
