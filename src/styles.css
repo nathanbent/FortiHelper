@@ -1106,3 +1106,15 @@ mark.ref-filled.ref-hit { padding: 0 0.15em; }
   color: var(--secondary);
   font-size: 0.85rem;
 }
+
+.batch-check {
+  font-size: 0.85rem;
+  color: var(--warn-text);
+  margin-bottom: 0.4rem;
+}
+
+.batch-check.ok { color: var(--ok); }
+
+.batch-check-list summary { cursor: pointer; color: var(--muted); }
+
+.batch-check-list ul { margin: 0.25rem 0 0; padding-left: 1.2rem; color: var(--text); }

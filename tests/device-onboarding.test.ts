@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   apModelFromSerial,
+  checkBatches,
+  checkCommands,
   detectDelimiter,
   detectDeviceColumns,
   generateOnboarding,
@@ -739,5 +741,113 @@ describe('comparing against the FortiGate', () => {
       parseExistingState(NAMED),
     );
     expect(warnings.map((w) => w.message).join()).toContain('"set name" does not exist');
+  });
+});
+
+describe('checking that a batch took', () => {
+  const LIST = [
+    'serial,name,comments',
+    'S248EPTF00000001,IDF1-SW1,First floor IDF',
+    'S248EPTF00000002,IDF2-SW1,Second floor IDF',
+    'FP231FTF00000004,AP-Lobby,Lobby ceiling',
+    'FP231FTF00000005,AP-Conf,Conference room',
+  ].join('\n');
+  const OPTIONS = { batchSize: 2, switchGroup: 'Floor1' };
+  const devices = load(LIST).devices;
+  const result = generateOnboarding(devices, OPTIONS);
+
+  it('lists only the show commands for what the batch writes', () => {
+    expect(result.batches.map(checkCommands)).toEqual([
+      ['show switch-controller managed-switch', 'show switch-controller switch-group'],
+      ['show wireless-controller wtp'],
+    ]);
+  });
+
+  // Batch 1 applied in full, except the second switch never joined the group.
+  const AFTER_SWITCHES = [
+    'config switch-controller managed-switch',
+    '    edit "IDF1-SW1"',
+    '        set sn "S248EPTF00000001"',
+    '        set description "First floor IDF"',
+    '        set fsw-wan1-peer "fortilink"',
+    '        set fsw-wan1-admin enable',
+    '    next',
+    '    edit "IDF2-SW1"',
+    '        set sn "S248EPTF00000002"',
+    '        set description "Second floor IDF"',
+    '        set fsw-wan1-peer "fortilink"',
+    '        set fsw-wan1-admin enable',
+    '    next',
+    'end',
+  ].join('\n');
+  const AFTER_GROUP = [
+    'config switch-controller switch-group',
+    '    edit "Floor1"',
+    '        set fortilink "fortilink"',
+    '        set members "IDF1-SW1"',
+    '    next',
+    'end',
+  ].join('\n');
+
+  it('confirms, flags, and leaves unchecked per device', () => {
+    const checks = checkBatches(
+      devices,
+      OPTIONS,
+      result,
+      parseExistingState(`${AFTER_SWITCHES}\n${AFTER_GROUP}`)!,
+    );
+    expect(checks.map((c) => [c.index, c.confirmed, c.pending, c.unchecked])).toEqual([
+      [1, 1, 1, 0],
+      [2, 0, 0, 2],
+    ]);
+    expect(checks[0].devices.map((d) => [d.device.serial, d.state, d.detail])).toEqual([
+      ['S248EPTF00000001', 'confirmed', ''],
+      ['S248EPTF00000002', 'pending', 'still differs: group'],
+    ]);
+    expect(checks[1].devices[0].detail).toBe('no output of "show wireless-controller wtp"');
+  });
+
+  it('does not call a group unjoined when the group output is missing', () => {
+    const checks = checkBatches(devices, OPTIONS, result, parseExistingState(AFTER_SWITCHES)!);
+    expect(checks[0].devices.map((d) => [d.state, d.detail])).toEqual([
+      ['unchecked', 'group not checked: no output of "show switch-controller switch-group"'],
+      ['unchecked', 'group not checked: no output of "show switch-controller switch-group"'],
+    ]);
+  });
+
+  it('reports a device that is not there, and one that still differs', () => {
+    const partial = [
+      'config wireless-controller wtp',
+      '    edit "FP231FTF00000004"',
+      '        set admin discovered',
+      '        set name "AP-Lobby"',
+      '        set location "Lobby ceiling"',
+      '    next',
+      'end',
+    ].join('\n');
+    const checks = checkBatches(devices, OPTIONS, result, parseExistingState(partial)!);
+    expect(checks[1].devices.map((d) => [d.state, d.detail])).toEqual([
+      ['pending', 'still differs: approval'],
+      ['pending', 'not on the FortiGate'],
+    ]);
+  });
+
+  it('confirms every batch once everything is there', () => {
+    const all = [
+      AFTER_SWITCHES,
+      AFTER_GROUP.replace('"IDF1-SW1"\n', '"IDF1-SW1" "IDF2-SW1"\n'),
+      'config wireless-controller wtp',
+      '    edit "FP231FTF00000004"',
+      '        set name "AP-Lobby"',
+      '        set location "Lobby ceiling"',
+      '    next',
+      '    edit "FP231FTF00000005"',
+      '        set name "AP-Conf"',
+      '        set location "Conference room"',
+      '    next',
+      'end',
+    ].join('\n');
+    const checks = checkBatches(devices, OPTIONS, result, parseExistingState(all)!);
+    expect(checks.every((c) => c.confirmed === c.devices.length)).toBe(true);
   });
 });
