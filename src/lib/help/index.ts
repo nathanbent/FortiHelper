@@ -45,6 +45,7 @@ export const PAGE_IDS = [
   'forti-edit',
   'reference',
   'quickstart',
+  'about',
 ] as const;
 
 export type PageId = (typeof PAGE_IDS)[number];
