@@ -15,6 +15,8 @@ export * from './types';
 export { parseSheet } from './markdown';
 export * from './variables';
 export * from './versions';
+export * from './custom';
+export type { ParsedSheet } from './markdown';
 
 /** All reference sections, in display order. */
 export const referenceSections: ReferenceSection[] = loadSheets();
