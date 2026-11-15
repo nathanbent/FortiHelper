@@ -27,8 +27,8 @@ Do this **before** making the old repo private, so the published site is never
 down.
 
 ```bash
-git clone https://github.com/nathanbent/FortiNate-beta.git fortinate-public
-cd fortinate-public
+git clone https://github.com/nathanbent/FortiHelper.git fortihelper-public
+cd fortihelper-public
 rm -rf .git          # the whole point: no history comes along
 ```
 
@@ -37,7 +37,7 @@ Then rename it. The repo name is written down once, in `package.json`:
 ```json
 "repository": {
   "type": "git",
-  "url": "https://github.com/nathanbent/fortinate"
+  "url": "https://github.com/nathanbent/<new-repo>"
 }
 ```
 
@@ -53,7 +53,7 @@ Confirm it took:
 
 ```bash
 npm run build
-grep -o '"/[A-Za-z-]*/assets' dist/index.html    # expect "/fortinate/assets
+grep -o '"/[A-Za-z-]*/assets' dist/index.html    # expect "/<new-repo>/assets
 ```
 
 ## Step 2: Pre-flight, then push
@@ -101,7 +101,7 @@ To version-control them without risking the public repo, clone a small private
 repo into that ignored path:
 
 ```bash
-git clone git@github.com:nathanbent/fortinate-templates.git content/quickstart/private
+git clone git@github.com:nathanbent/fortihelper-templates.git content/quickstart/private
 ```
 
 The outer repo ignores the path, so the inner checkout is invisible to it.

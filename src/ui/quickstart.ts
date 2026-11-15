@@ -2,12 +2,15 @@ import { el, textField, outputPane, setShown } from './components';
 import { parseQuickstart, fillQuickstart, type QuickstartTemplate } from '../lib/quickstart';
 import type { Warning } from '../types';
 
-const SAVED_TEMPLATE_KEY = 'fortinate:quickstart:template';
+const SAVED_TEMPLATE_KEY = 'fortihelper:quickstart:template';
+
+/** The key used before the rename; still read so a saved template carries over. */
+const LEGACY_TEMPLATE_KEY = 'fortinate:quickstart:template';
 
 /** The template this browser has saved, if any. */
 export function loadSavedTemplate(): string | null {
   try {
-    return localStorage.getItem(SAVED_TEMPLATE_KEY);
+    return localStorage.getItem(SAVED_TEMPLATE_KEY) ?? localStorage.getItem(LEGACY_TEMPLATE_KEY);
   } catch {
     return null;
   }
@@ -15,6 +18,8 @@ export function loadSavedTemplate(): string | null {
 
 function saveTemplate(markdown: string | null): void {
   try {
+    // Always clear the old key, so forgetting a template really removes it.
+    localStorage.removeItem(LEGACY_TEMPLATE_KEY);
     if (markdown === null) localStorage.removeItem(SAVED_TEMPLATE_KEY);
     else localStorage.setItem(SAVED_TEMPLATE_KEY, markdown);
   } catch {

@@ -1,7 +1,7 @@
-# FortiNate: Web App Conversion Plan
+# FortiHelper: Web App Conversion Plan
 
 Convert the Python CLI tools in `input-ideas/` into a single static web app
-("FortiNate") hosted on GitHub Pages. All logic runs client-side; no backend.
+("FortiHelper") hosted on GitHub Pages. All logic runs client-side; no backend.
 
 ## Decisions (locked)
 
@@ -74,7 +74,7 @@ Port as a pure function in `src/lib/webfilter/`:
 ```
 /                       repo root
 |-- index.html          app shell
-|-- vite.config.ts      base: '/FortiNate-beta/' for Pages
+|-- vite.config.ts      base: '/FortiHelper/' for Pages
 |-- package.json
 |-- tsconfig.json
 |-- src/
