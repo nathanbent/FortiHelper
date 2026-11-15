@@ -115,6 +115,7 @@ export const fortiEditTool: Tool = {
           mode = v as OutputMode;
           recompute();
         },
+        'full re-sends every entry as it was pasted, so start from a current copy of the section',
       ),
     );
 
@@ -122,7 +123,10 @@ export const fortiEditTool: Tool = {
     const previewBox = el('div', 'match-list');
     panel.append(previewBox);
 
-    const output = outputPane('forti-edit.txt');
+    const output = outputPane(
+      'forti-edit.txt',
+      'Values are written as typed: nothing checks that a name you append or set exists on the device.',
+    );
 
     const right = el('div');
     right.append(panel, output.root);
@@ -365,6 +369,16 @@ export const fortiEditTool: Tool = {
         output.update('', '', warnings);
         return;
       }
+      // The parser has no escape handling, so say so rather than emit a
+      // value that was silently split at the escaped quote.
+      text.split(/\r?\n/).forEach((line, i) => {
+        if (line.includes('\\"')) {
+          warnings.push({
+            line: i + 1,
+            message: 'contains an escaped quote (\\"), which is not parsed correctly: check this entry by hand',
+          });
+        }
+      });
       try {
         const root = parse(text);
         const block = findBlock(root, section);

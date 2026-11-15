@@ -130,6 +130,7 @@ export const webfilterTool: Tool = {
               regenerate();
             },
             { min: 1, step: 1 },
+            'if the device already has a list with this ID, pasting changes that list',
           ),
         );
       }
