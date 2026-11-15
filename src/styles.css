@@ -39,6 +39,9 @@ h1, h2, h3 {
 /* Form controls do not inherit the page font by default. */
 button, input, select, textarea { font-family: inherit; }
 
+/* The browser default placeholder gray is below AA on both input surfaces. */
+::placeholder { color: var(--secondary); opacity: 1; }
+
 .shell-header {
   display: flex;
   align-items: center;
