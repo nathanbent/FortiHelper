@@ -19,7 +19,7 @@ config vpn ipsec phase1-interface
         set net-device disable
         set proposal aes256-sha256
         set dhgrp 14
-        set remote-gw <peer-public-ip>
+        set remote-gw <peer-ip>
         set psksecret <pre-shared-key>
     next
 end

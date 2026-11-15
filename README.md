@@ -89,6 +89,16 @@ carries the same split as hairline-separated groups.
   FortiGate color-ID table with swatches. Click **+** on any command to add it
   to a selection tray, or **Add all** to take a whole section, then copy the
   lot as one block: a debug sequence can be assembled across several sheets.
+  A section whose commands contain `<placeholder>`s gets a **Variables** row
+  with one field per placeholder: type a value and it is filled into the
+  commands on screen and into everything you copy (single commands, Copy
+  all, config blocks, and the tray). A value is shared by every section that
+  uses the same placeholder, blanks stay as `<placeholder>`, and nothing is
+  saved: values live in memory and are gone on reload. Secret fields such as
+  `<pre-shared-key>` are masked and only filled into what you copy, never
+  shown on the page. Fields are detected from the commands and config
+  blocks, so a new sheet needs nothing extra: reuse an existing placeholder
+  name (`<switch-id>`, `<port>`, `<peer-ip>`) where it means the same thing.
   See
   [Adding reference content](#adding-reference-content).
 - **Templates**: fill in a site's details and get the whole build-out config.

@@ -68,7 +68,7 @@ export interface QuickstartTemplate {
  * A placeholder: `<name>` with a letter-led, word-ish name. Deliberately
  * narrow so ordinary angle brackets in config text are not mistaken for one.
  */
-const PLACEHOLDER_RE = /<[A-Za-z][A-Za-z0-9_.-]*>/g;
+export const PLACEHOLDER_RE = /<[A-Za-z][A-Za-z0-9_.-]*>/g;
 
 /**
  * Markup that shows up inside config values: the pre-login banner in the

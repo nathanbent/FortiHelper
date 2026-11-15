@@ -13,6 +13,7 @@ import { loadSheets } from './markdown';
 
 export * from './types';
 export { parseSheet } from './markdown';
+export * from './variables';
 
 /** All reference sections, in display order. */
 export const referenceSections: ReferenceSection[] = loadSheets();
