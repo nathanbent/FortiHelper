@@ -3,33 +3,19 @@
 
 /*
  * Theming. Colors, fonts and layout sizes come from tokens.css, which also
- * carries the dark palette. The few values below are local to this app; the
- * dark overrides are declared twice, once for the system preference (unless
- * the user has forced light) and once for an explicit dark choice, so the
- * header control wins in both directions. `data-theme` is set on <html> by
- * the theme control, and by an inline script in index.html so the first
- * paint is already correct.
+ * carries the dark palette. Only `color-scheme` is set here; it is declared
+ * for the system preference (unless the user has forced light) and for an
+ * explicit dark choice, so the header control wins in both directions.
+ * `data-theme` is set on <html> by the theme control, and by an inline
+ * script in index.html so the first paint is already correct.
  */
-:root {
-  --on-accent: #FFFFFF;       /* text on an accent fill */
-  --code-block-text: #D8DFE6; /* the code block is dark in both modes */
-  --warn-border: #D1A017;
-  color-scheme: light;
-}
+:root { color-scheme: light; }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --on-accent: #12161B;
-    --warn-border: #E3B341;
-    color-scheme: dark;
-  }
+  :root:not([data-theme='light']) { color-scheme: dark; }
 }
 
-:root[data-theme='dark'] {
-  --on-accent: #12161B;
-  --warn-border: #E3B341;
-  color-scheme: dark;
-}
+:root[data-theme='dark'] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
@@ -308,8 +294,8 @@ pre.output {
 
 .warnings {
   margin-top: 0.6rem;
-  background: color-mix(in srgb, var(--warn-border) 8%, var(--entry));
-  border: 1px solid var(--warn-border);
+  background: color-mix(in srgb, var(--status-warn-border) 8%, var(--entry));
+  border: 1px solid var(--status-warn-border);
   color: var(--status-warn);
   border-radius: var(--radius);
   padding: 0.6rem 0.8rem;
