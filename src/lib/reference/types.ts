@@ -8,8 +8,11 @@
 
 /** Topic filter options, in dropdown order. */
 export const REFERENCE_TOPICS = [
+  { value: 'traffic', label: 'Traffic and sessions' },
+  { value: 'routing', label: 'Routing and SD-WAN' },
   { value: 'ipsec', label: 'IPsec VPN' },
   { value: 'saml', label: 'SAML / SSO' },
+  { value: 'ha', label: 'High availability' },
   { value: 'fortiswitch', label: 'FortiSwitch' },
   { value: 'webfilter', label: 'Web filter' },
   { value: 'general', label: 'General' },
@@ -79,4 +82,17 @@ export function kindLabel(kind: ReferenceKind): string {
 /** How many rows and snippets a section holds, for the collapsed summary. */
 export function sectionItemCount(section: ReferenceSection): number {
   return (section.entries?.length ?? 0) + (section.snippets?.length ?? 0);
+}
+
+/**
+ * Sections bucketed by topic, in REFERENCE_TOPICS order, each keeping the
+ * order the sections came in. Topics with no sections are left out.
+ */
+export function groupByTopic(
+  sections: ReferenceSection[],
+): { topic: ReferenceTopic; sections: ReferenceSection[] }[] {
+  return REFERENCE_TOPICS.map(({ value }) => ({
+    topic: value,
+    sections: sections.filter((s) => s.topic === value),
+  })).filter((group) => group.sections.length > 0);
 }
