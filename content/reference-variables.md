@@ -56,6 +56,8 @@ list. Keep examples generic: private or documentation addresses only.
 
 - <switch-id> - Switch ID - e.g. S108EN5918000000
 - <FortiSwitch_serial_number> - FortiSwitch serial - e.g. S108EN5918000000
+- <switch-name> - Switch name - e.g. IDF2-SW01
+- <switch-description> - Switch description - e.g. Second floor, rack B
 - <port> - Switch port - e.g. port7
 - <uplink-port> - Uplink port - e.g. port23
 - <icl-port> - ICL port - e.g. port24
@@ -73,6 +75,8 @@ list. Keep examples generic: private or documentation addresses only.
 
 - <ap-serial> - FortiAP serial - e.g. FP231FTF20000000
 - <client-mac> - Client MAC address - e.g. 00:11:22:33:44:55
+- <ap-name> - AP name - e.g. Floor2-East
+- <ap-location> - AP location - e.g. Second floor, east corridor
 - <ap-model> - FortiAP model - e.g. 231F
 - <ap-profile-name> - FortiAP profile name - e.g. office-231F
 - <ap-group-name> - AP group name - e.g. floor-2
