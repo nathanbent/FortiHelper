@@ -1,0 +1,88 @@
+/* =============================================================
+   Brand tokens v1.0.0 - 2026-11-08
+   Copied in unchanged. Do not edit values here: update the copy
+   as a whole when the tokens change, and keep the version above.
+
+   Drop-in for any web project. Dark mode activates on:
+     - OS preference (unless the page forces [data-theme="light"])
+     - [data-theme="dark"] on <html>
+     - .dark on any ancestor (PaperMod puts it on <body>)
+
+   Only raw values here, so there's no var()-resolution trap.
+   If a project defines its own tokens with var(--accent) inside
+   them, it must redeclare those in its dark block too.
+   ============================================================= */
+
+:root {
+    --accent: #1B5A7A;
+    --accent-2: #235B41;
+
+    --theme: #E9EFF3;
+    --entry: #FFFFFF;
+    --primary: #1C2733;
+    --secondary: #5A6B79;
+    --tertiary: #C9D4DD;
+    --content: #232E3A;
+    --border: #D9E2EA;
+    --code-block-bg: #1B222B;
+    --code-bg: #F1F5F8;
+
+    --status-info: #1B5A7A;
+    --status-ok: #14685E;       /* TIP teal (text stop) */
+    --status-warn: #8A6600;       /* darker than the site callout #9C7400, which fails AA */
+    --status-error: #C23730;
+    --status-important: #7B54C8;
+
+    --font-heading: 'Rubik', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-body: 'Karla', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+    --main-width: 1100px;
+    --measure: 72ch;
+    --radius: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --accent: #7FB3D6;
+        --accent-2: #7FBFA0;
+
+        --theme: #12161B;
+        --entry: #242D38;
+        --primary: #D8DFE6;
+        --secondary: #92A0AD;
+        --tertiary: #3B4652;
+        --content: #C4CDD6;
+        --border: #333F4C;
+        --code-block-bg: #242D38;
+        --code-bg: #2F3A47;
+
+        --status-info: #7FB3D6;
+        --status-ok: #9BDCD2;
+        --status-warn: #E3B341;
+        --status-error: #F0857D;
+        --status-important: #B294E8;
+    }
+}
+
+:root[data-theme="dark"],
+.dark {
+    --accent: #7FB3D6;
+    --accent-2: #7FBFA0;
+
+    --theme: #12161B;
+    --entry: #242D38;
+    --primary: #D8DFE6;
+    --secondary: #92A0AD;
+    --tertiary: #3B4652;
+    --content: #C4CDD6;
+    --border: #333F4C;
+    --code-block-bg: #242D38;
+    --code-bg: #2F3A47;
+
+    --status-info: #7FB3D6;
+    --status-ok: #9BDCD2;
+    --status-warn: #E3B341;
+    --status-error: #F0857D;
+    --status-important: #B294E8;
+}
