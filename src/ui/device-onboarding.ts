@@ -86,6 +86,9 @@ export const deviceOnboardingTool: Tool = {
       apAuth: 'authorize',
       apProfile: '',
       apGroup: '',
+      switchNamePattern: '',
+      apNamePattern: '',
+      nameStart: 1,
     };
     let text = '';
     let kindChoice: 'auto' | DeviceKind = 'auto';
@@ -451,6 +454,12 @@ export const deviceOnboardingTool: Tool = {
       apProfile.append(
         el('span', 'hint', '{model} is read from each serial: FP231F... gives FAP231F-default'),
       );
+      const PATTERN_HINT =
+        'for rows with no name: {n} counts up, {n:2} gives 01, {gn} counts within the group; also {serial} {last4} {model} {group}';
+      const switchPattern = text_('Name pattern', 'switchNamePattern', 'e.g. IDF-SW{n:2}');
+      switchPattern.append(el('span', 'hint', PATTERN_HINT));
+      const apPattern = text_('Name pattern', 'apNamePattern', 'e.g. AP-{group}-{gn:2}');
+      apPattern.append(el('span', 'hint', PATTERN_HINT));
       const apGroup = text_('FortiAP group', 'apGroup', 'optional');
       apGroup.append(el('span', 'hint', 'one AP model per group'));
 
@@ -464,6 +473,7 @@ export const deviceOnboardingTool: Tool = {
         }),
         text_('FortiLink interface', 'fortilink', 'fortilink'),
         text_('Switch group', 'switchGroup', 'optional'),
+        switchPattern,
         selectField(
           'Switch names',
           [
@@ -486,6 +496,7 @@ export const deviceOnboardingTool: Tool = {
         }),
         apProfile,
         apGroup,
+        apPattern,
       ];
 
       const adv: HTMLElement[] = [
@@ -516,6 +527,15 @@ export const deviceOnboardingTool: Tool = {
         ),
         text_('Switch profile', 'switchProfile', 'optional: set switch-profile'),
         text_('Switch access profile', 'accessProfile', 'optional: set access-profile'),
+        numberField(
+          'Name patterns count from',
+          opts.nameStart,
+          (v) => {
+            opts.nameStart = Math.floor(v);
+            regenerate();
+          },
+          { min: 0, step: 1 },
+        ),
       ];
       const details = el('details', 'adv');
       details.open = advancedOpen;

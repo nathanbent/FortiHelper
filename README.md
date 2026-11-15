@@ -86,7 +86,10 @@ carries the same split as hairline-separated groups.
   the FortiGate but not in the list is pointed out. Output is cut into **batches** (50 devices by default), each a
   complete block with its own Copy button that stays ticked once copied;
   group members are added with `append`, so pasting batch 2 does not undo
-  batch 1. Each batch also has a **Copy check** button: run those `show`
+  batch 1. A **Name pattern** per kind names the rows that have
+  none: `IDF-SW{n:2}` gives IDF-SW01, IDF-SW02, and so on, `{gn}` counts
+  within a group, and `{serial}`, `{last4}`, `{model}`, and `{group}` fill
+  in from the device. Each batch also has a **Copy check** button: run those `show`
   commands after pasting the batch, paste the output under **Check what
   took**, and the batch is marked confirmed, or the devices that are missing
   or still differ are listed. The FortiCloud key is tracked rather than configured: it shows in
