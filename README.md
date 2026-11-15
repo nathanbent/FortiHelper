@@ -397,6 +397,20 @@ in range, multi-line snippet bodies, `copyAll` only where there is a sequence
 to copy, and no topic or kind left without content (which would leave a dead
 dropdown option). Run `npm test` after editing content.
 
+## About page and changelog
+
+The footer shows the version and links to an About page (`#/about`): version,
+the commit the build was made from, a link to the author's site, and the
+changelog.
+
+- **Version** comes from `version` in `package.json`; the commit and its date
+  are read from git at build time.
+- **Changelog** is [`CHANGELOG.md`](CHANGELOG.md). Add a `## YYYY-MM-DD`
+  heading with plain-text `- ` bullets; `npm test` checks the shape.
+- **Photo**: drop a file named `cat.jpg` (or `.jpeg`, `.png`, `.webp`,
+  `.avif`) into `src/assets/` and it appears on the page. With no file there,
+  the section is left out.
+
 ## Deployment
 
 Pushes to `main` build and deploy to GitHub Pages via
