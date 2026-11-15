@@ -11,6 +11,12 @@ import {
   type ReferenceEntry,
   type ReferenceSection,
   type ReferenceSnippet,
+  fillParts,
+  fillPlaceholders,
+  isSecretPlaceholder,
+  placeholderLabel,
+  placeholdersIn,
+  sectionPlaceholders,
 } from '../lib/reference';
 
 /** Wire a button to copy `text`, with brief check-mark feedback like outputPane. */
@@ -121,9 +127,95 @@ export const referenceTool: Tool = {
     filters.append(row, summaryRow);
     container.append(filters);
 
+    // ---------- variables ----------
+    // Values typed into a section's variable fields, keyed by placeholder
+    // (`<switch-id>`). Shared across sections, so a value entered once fills
+    // that placeholder everywhere. Held in memory only: nothing is written
+    // to storage, and the map is gone when the tab is left or reloaded.
+    const values = new Map<string, string>();
+    /** `values` without secrets: what is safe to draw on screen. */
+    const shownValues = new Map<string, string>();
+    /** Every input for a placeholder, so the same field in other sections follows. */
+    const varInputs = new Map<string, HTMLInputElement[]>();
+    /** Elements showing text with placeholders, redrawn when a value changes. */
+    const filledViews: { node: HTMLElement; template: string }[] = [];
+
+    /** Draw `template` into `node` with entered values substituted and marked. */
+    function renderFilled(node: HTMLElement, template: string): void {
+      node.replaceChildren(
+        ...fillParts(template, shownValues).map((part) => {
+          if (part.placeholder === undefined) return document.createTextNode(part.text);
+          const mark = el('mark', 'ref-filled', part.text);
+          mark.title = part.placeholder;
+          return mark;
+        }),
+      );
+    }
+
+    /** A code/pre element showing `template`, kept in step with the values. */
+    function filledView<K extends 'code' | 'pre'>(
+      tag: K,
+      className: string | undefined,
+      template: string,
+    ): HTMLElementTagNameMap[K] {
+      const node = el(tag, className, template);
+      if (placeholdersIn(template).length > 0) filledViews.push({ node, template });
+      return node;
+    }
+
+    function setValue(name: string, value: string, source?: HTMLInputElement): void {
+      values.set(name, value);
+      if (!isSecretPlaceholder(name)) shownValues.set(name, value);
+      for (const input of varInputs.get(name) ?? []) {
+        if (input !== source) input.value = value;
+      }
+      for (const { node, template } of filledViews) {
+        if (template.includes(name)) renderFilled(node, template);
+      }
+      syncTray();
+    }
+
+    /** The row of variable fields for a section, or null when it has none. */
+    function variableFields(names: string[]): HTMLElement | null {
+      if (names.length === 0) return null;
+      const wrap = el('div', 'ref-vars');
+      const head = el('div', 'ref-vars-head');
+      head.append(el('span', 'ref-vars-title', 'Variables'));
+      head.append(
+        el('span', 'ref-vars-hint', 'Fill in to complete the commands below. Not saved anywhere.'),
+      );
+      const clear = el('button', 'btn', 'Clear');
+      clear.addEventListener('click', () => {
+        for (const name of names) setValue(name, '');
+      });
+      head.append(clear);
+
+      const fields = el('div', 'ref-vars-fields');
+      for (const name of names) {
+        const secret = isSecretPlaceholder(name);
+        const field = el('label', 'ref-var');
+        field.append(el('span', undefined, placeholderLabel(name)));
+        const input = el('input');
+        input.type = secret ? 'password' : 'text';
+        input.placeholder = name;
+        input.value = values.get(name) ?? '';
+        input.autocomplete = secret ? 'new-password' : 'off';
+        input.spellcheck = false;
+        if (secret) input.title = 'Kept off the screen: filled in only in what you copy';
+        input.addEventListener('input', () => setValue(name, input.value, input));
+        varInputs.set(name, [...(varInputs.get(name) ?? []), input]);
+        field.append(input);
+        fields.append(field);
+      }
+      wrap.append(head, fields);
+      return wrap;
+    }
+
     // ---------- selection tray ----------
     // Commands picked from anywhere on the page, in the order they were
     // added, so a debug sequence can be assembled across several sheets.
+    // Stored as written in the sheet (placeholders intact); values are
+    // substituted when the tray is drawn or copied.
     const picked: string[] = [];
     /** Every add-button for a command, so Clear can reset them all. */
     const addButtons = new Map<string, HTMLButtonElement[]>();
@@ -132,7 +224,7 @@ export const referenceTool: Tool = {
     const trayCount = el('span', 'ref-tray-count', '');
     const trayList = el('pre', 'output ref-tray-list', '');
     const trayToggle = el('button', 'btn', 'Show');
-    const trayCopy = copyButton('Copy selected', () => picked.join('\n'));
+    const trayCopy = copyButton('Copy selected', () => fillPlaceholders(picked.join('\n'), values));
     trayCopy.classList.add('primary');
     const trayClear = el('button', 'btn', 'Clear');
 
@@ -159,7 +251,7 @@ export const referenceTool: Tool = {
       const any = picked.length > 0;
       setShown(tray, any);
       trayCount.textContent = `${picked.length} command${picked.length === 1 ? '' : 's'}`;
-      trayList.textContent = picked.join('\n');
+      renderFilled(trayList, picked.join('\n'));
       if (!any && trayOpen) {
         trayOpen = false;
         trayToggle.textContent = 'Show';
@@ -217,12 +309,14 @@ export const referenceTool: Tool = {
           .map((e) => e.command)
           .filter((c): c is string => c !== undefined)
           .join('\n');
-        head.append(copyButton('Copy all', () => block));
+        head.append(copyButton('Copy all', () => fillPlaceholders(block, values)));
       }
       panel.append(head);
 
       const body = el('div', 'ref-body');
       if (section.description) body.append(el('p', 'ref-note', section.description));
+      const vars = variableFields(sectionPlaceholders(section));
+      if (vars) body.append(vars);
 
       const rows: { row: HTMLElement; matches: (q: string) => boolean }[] = [];
       /** Commands in this section, for its "Add all" button. */
@@ -235,7 +329,11 @@ export const referenceTool: Tool = {
           swatch.style.background = colorHex(entry.swatch) ?? 'transparent';
           line.append(swatch);
         }
-        line.append(el('code', undefined, entry.command ?? entry.text ?? ''));
+        line.append(
+          entry.command !== undefined
+            ? filledView('code', undefined, entry.command)
+            : el('code', undefined, entry.text ?? ''),
+        );
         if (entry.description) line.append(el('span', 'desc', entry.description));
         if (entry.command !== undefined) {
           const cmd = entry.command;
@@ -243,7 +341,7 @@ export const referenceTool: Tool = {
           add.title = 'Add to selection';
           add.addEventListener('click', () => toggleCommand(cmd));
           addButtons.set(cmd, [...(addButtons.get(cmd) ?? []), add]);
-          line.append(add, copyButton('Copy', () => cmd));
+          line.append(add, copyButton('Copy', () => fillPlaceholders(cmd, values)));
           sectionCommands.push({ cmd, row: line });
         }
         body.append(line);
@@ -254,10 +352,10 @@ export const referenceTool: Tool = {
         const card = el('div', 'ref-snippet');
         const snipHead = el('div', 'ref-snippet-head');
         snipHead.append(el('strong', undefined, snippet.title));
-        snipHead.append(copyButton('Copy', () => snippet.body));
+        snipHead.append(copyButton('Copy', () => fillPlaceholders(snippet.body, values)));
         card.append(snipHead);
         if (snippet.description) card.append(el('span', 'desc', snippet.description));
-        card.append(el('pre', 'output', snippet.body));
+        card.append(filledView('pre', 'output', snippet.body));
         body.append(card);
         rows.push({ row: card, matches: (q) => snippetMatches(snippet, q) });
       }
