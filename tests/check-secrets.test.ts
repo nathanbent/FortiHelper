@@ -31,7 +31,7 @@ describe('check-secrets catches what it is for', () => {
   });
 
   it('flags a routable IP address', () => {
-    expect(rules('set ip 24.248.244.32 255.255.255.224')).toContain('public-ip');
+    expect(rules('set ip 93.184.216.34 255.255.255.224')).toContain('public-ip');
   });
 
   it('flags a denylisted term, case-insensitively', () => {

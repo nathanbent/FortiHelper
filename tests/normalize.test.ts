@@ -16,7 +16,7 @@ const PLAIN: InputFormat = { mode: 'plain', delimiter: ':', useInputComment: fal
 
 describe('cleanAddress', () => {
   it('reduces URLs to the host', () => {
-    expect(cleanAddress('te.drcedirect.com/wida')).toBe('te.drcedirect.com');
+    expect(cleanAddress('te.example.com/exam')).toBe('te.example.com');
     expect(cleanAddress('https://user:pw@portal.example.com:8443/a/b?q=1')).toBe(
       'portal.example.com',
     );
@@ -36,12 +36,12 @@ describe('cleanAddress', () => {
 });
 
 describe('fitName / uniqueName', () => {
-  const long = 'DRC Insight-us-east-1-content-hosting-form-locker-prod.s3.us-east-1.amazonaws.com';
+  const long = 'Vendor Apps-us-east-1-content-hosting-file-bucket-prod.s3.us-east-1.amazonaws.com';
 
   it('cuts whole labels to fit the limit', () => {
     const fitted = fitName(long);
     expect(fitted.length).toBeLessThanOrEqual(MAX_OBJ_NAME_LEN);
-    expect(fitted).toBe('DRC Insight-us-east-1-content-hosting-form-locker-prod.s3.us-east-1.amazonaws');
+    expect(fitted).toBe('Vendor Apps-us-east-1-content-hosting-file-bucket-prod.s3.us-east-1.amazonaws');
   });
 
   it('keeps the tail', () => {
@@ -96,12 +96,12 @@ describe('normalizeRecords', () => {
 
 describe('generation with normalization', () => {
   const input = [
-    'te.drcedirect.com/wida',
-    'portal.te.drcedirect.com/wida',
-    'us-east-1-content-hosting-form-locker-prod.s3.us-east-1.amazonaws.com',
-    'us-east-2-content-hosting-form-locker-prod.s3.us-east-2.amazonaws.com',
+    'te.example.com/exam',
+    'portal.te.example.com/exam',
+    'us-east-1-content-hosting-file-bucket-prod.s3.us-east-1.amazonaws.com',
+    'us-east-2-content-hosting-file-bucket-prod.s3.us-east-2.amazonaws.com',
   ].join('\n');
-  const base = { namePrefix: 'DRC Insight', resolvedAt: RESOLVED_AT };
+  const base = { namePrefix: 'Vendor Apps', resolvedAt: RESOLVED_AT };
 
   it('reports the fixable issues while the fixes are off', () => {
     const r = generateObjects(input, base);
@@ -118,12 +118,12 @@ describe('generation with normalization', () => {
     expect(r.issues).toEqual({ urlLike: 0, swapped: 0, longNames: 0, nameConflicts: 0 });
     expect(r.stats.total).toBe(4);
     expect(r.warnings.every((w) => w.kind === 'fix')).toBe(true);
-    expect(r.output).toContain('set fqdn "te.drcedirect.com"');
+    expect(r.output).toContain('set fqdn "te.example.com"');
     expect(r.output).toContain(
-      'edit "DRC Insight-us-east-1-content-hosting-form-locker-prod.s3.us-east-1.amazonaws"',
+      'edit "Vendor Apps-us-east-1-content-hosting-file-bucket-prod.s3.us-east-1.amazonaws"',
     );
     expect(r.output).toContain(
-      'edit "DRC Insight-us-east-2-content-hosting-form-locker-prod.s3.us-east-2.amazonaws"',
+      'edit "Vendor Apps-us-east-2-content-hosting-file-bucket-prod.s3.us-east-2.amazonaws"',
     );
   });
 
@@ -217,10 +217,10 @@ describe('recommendInputModes', () => {
 
   it('suggests one-per-line when a URL list is read as pairs', () => {
     const text = [
-      'https://drc-centraloffice.com',
-      'https://drc-wbte-prod.s3.amazonaws.com',
-      'https://te.drcedirect.com/wida',
-      'https://www.wida-ams.us',
+      'https://central-office.example.com',
+      'https://example-prod.s3.amazonaws.com',
+      'https://te.example.com/exam',
+      'https://www.example.org',
     ].join('\n');
     const recs = recommendInputModes(text, { mode: 'pairs', delimiter: ':', useInputComment: false });
     // Only one reading: the alternate lines are not comments either.
