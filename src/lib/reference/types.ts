@@ -11,12 +11,14 @@ export const REFERENCE_TOPICS = [
   { value: 'traffic', label: 'Traffic and sessions' },
   { value: 'routing', label: 'Routing and SD-WAN' },
   { value: 'ipsec', label: 'IPsec VPN' },
+  { value: 'remote', label: 'SSL VPN and ZTNA' },
   { value: 'saml', label: 'SAML / SSO' },
+  { value: 'auth', label: 'Authentication' },
   { value: 'ha', label: 'High availability' },
   { value: 'fortiswitch', label: 'FortiSwitch' },
   { value: 'fortiap', label: 'FortiAP and wireless' },
   { value: 'webfilter', label: 'Web filter' },
-  { value: 'general', label: 'General' },
+  { value: 'general', label: 'System' },
 ] as const;
 
 /** Kind filter options, in dropdown order. */
