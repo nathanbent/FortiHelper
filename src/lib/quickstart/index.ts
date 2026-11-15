@@ -40,7 +40,7 @@ export interface QuickstartVariable {
   name: string;
   /** Label for the field, from the Variables list. */
   description: string;
-  /** Example value, from a trailing "e.g. …" on the Variables line. */
+  /** Example value, from a trailing "e.g. ..." on the Variables line. */
   example: string;
   /** True when the placeholder is used in the body but not documented. */
   undocumented: boolean;
@@ -71,8 +71,8 @@ export interface QuickstartTemplate {
 const PLACEHOLDER_RE = /<[A-Za-z][A-Za-z0-9_.-]*>/g;
 
 /**
- * Markup that shows up inside config values — the pre-login banner in the
- * bundled template is HTML — and must not be offered as a form field. Only
+ * Markup that shows up inside config values: the pre-login banner in the
+ * bundled template is HTML, and must not be offered as a form field. Only
  * applies to undocumented placeholders: listing one under "## Variables"
  * makes it a variable regardless.
  */
@@ -86,7 +86,7 @@ const HTML_TAGS = new Set([
 ]);
 
 /** `- <name> - description - e.g. example` */
-const VARIABLE_LINE_RE = /^[-*]\s*(<[A-Za-z][A-Za-z0-9_.-]*>)\s*[-–—]\s*(.+)$/;
+const VARIABLE_LINE_RE = /^[-*]\s*(<[A-Za-z][A-Za-z0-9_.-]*>)\s*[-\u2013\u2014]\s*(.+)$/;
 
 function splitLines(text: string): string[] {
   return text.split(/\r\n|[\n\r]/);
@@ -116,9 +116,9 @@ function splitFrontMatter(lines: string[]): { meta: Record<string, string>; rest
  * Collect every fenced code block, joined by a blank line, falling back to the
  * whole document when there are none.
  *
- * Templates split their config into sections with prose between them — a
- * config block and then the diagnostic commands that make it take effect, say
- * — and all of it is part of what you paste. Prose between blocks is not.
+ * Templates split their config into sections with prose between them (a
+ * config block and then the diagnostic commands that make it take effect, say)
+ * and all of it is part of what you paste. Prose between blocks is not.
  */
 function extractBody(lines: string[]): { body: string; fenced: boolean } {
   const blocks: string[] = [];
@@ -145,7 +145,7 @@ function extractBody(lines: string[]): { body: string; fenced: boolean } {
   return { body, fenced: true };
 }
 
-/** Parse the `## Variables` list into name → {description, example}. */
+/** Parse the `## Variables` list into name -> {description, example}. */
 function extractVariables(lines: string[]): Map<string, { description: string; example: string }> {
   const found = new Map<string, { description: string; example: string }>();
 
@@ -161,7 +161,7 @@ function extractVariables(lines: string[]): Map<string, { description: string; e
 
     const [, name, rest] = match;
     // A trailing "- e.g. value" is the example; the rest is the label.
-    const eg = /^(.*?)\s*[-–—]\s*e\.?g\.?[:\s]\s*(.+)$/i.exec(rest);
+    const eg = /^(.*?)\s*[-\u2013\u2014]\s*e\.?g\.?[:\s]\s*(.+)$/i.exec(rest);
     found.set(name, {
       description: (eg ? eg[1] : rest).trim(),
       example: eg ? eg[2].trim() : '',
@@ -185,7 +185,7 @@ export function parseQuickstart(markdown: string): QuickstartTemplate {
       category = meta.category as TemplateCategory;
     } else {
       warnings.push({
-        message: `Unknown category "${meta.category}" — falling back to Other. Valid: ${TEMPLATE_CATEGORIES.map(
+        message: `Unknown category "${meta.category}", falling back to Other. Valid: ${TEMPLATE_CATEGORIES.map(
           (c) => c.value,
         ).join(', ')}`,
       });
@@ -198,7 +198,7 @@ export function parseQuickstart(markdown: string): QuickstartTemplate {
   if (!fenced) {
     warnings.push({
       message:
-        'No fenced code block found — using the whole document as the template body. Wrap the config in ``` fences to be explicit.',
+        'No fenced code block found, using the whole document as the template body. Wrap the config in ``` fences to be explicit.',
     });
   }
 
@@ -206,7 +206,7 @@ export function parseQuickstart(markdown: string): QuickstartTemplate {
   if (documented.size === 0) {
     warnings.push({
       message:
-        'No "## Variables" list found — fields were derived from the placeholders in the body instead.',
+        'No "## Variables" list found: fields were derived from the placeholders in the body instead.',
     });
   }
 

@@ -14,7 +14,7 @@ import type { DnsResults, ObjectHelperOptions } from '../src/lib/object-helper';
 import { resolveFqdns } from '../src/lib/dns';
 
 // @types/node is not installed in this project, so access node:fs through
-// process.getBuiltinModule (Node >= 20.16) with a minimal local declaration —
+// process.getBuiltinModule (Node >= 20.16) with a minimal local declaration:
 // keeps `tsc --noEmit` clean without adding dependencies.
 declare const process: {
   getBuiltinModule(name: 'node:fs'): {
@@ -329,7 +329,7 @@ describe('safeObjName', () => {
     const result = safeObjName('Web Server (192.0.2.85)', (m) => warnings.push(m), true);
     expect(result).toBe('Web Server 192.0.2.85');
     expect(warnings).toEqual([
-      "Warning: renamed 'Web Server (192.0.2.85)' to 'Web Server 192.0.2.85' — " +
+      "Warning: renamed 'Web Server (192.0.2.85)' to 'Web Server 192.0.2.85': " +
         "FortiOS rejects ( ) < > ' # in object names.",
     ]);
     expect(safeObjName("a <b> 'c' #d", () => {}, true)).toBe('a b c d');
@@ -520,9 +520,9 @@ describe('bulk comment', () => {
     const { output } = generateObjects('example.com\nvendor\n', {
       useInputComment: true,
       bulkComment: 'Ticket 123',
-      bulkCommentSeparator: ' — ',
+      bulkCommentSeparator: ' \u2014 ',
     });
-    expect(comments(output)).toContain('vendor — Ticket 123');
+    expect(comments(output)).toContain('vendor \u2014 Ticket 123');
   });
 
   it('applies to every object in the list', () => {

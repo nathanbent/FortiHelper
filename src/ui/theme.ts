@@ -3,7 +3,10 @@ import { el } from './components';
 export type Theme = 'system' | 'light' | 'dark';
 
 /** Kept in sync with the inline pre-paint script in index.html. */
-export const THEME_KEY = 'fortinate:theme';
+export const THEME_KEY = 'fortihelper:theme';
+
+/** The key used before the rename; still read so a saved choice carries over. */
+const LEGACY_THEME_KEY = 'fortinate:theme';
 
 function isTheme(value: string | null): value is Theme {
   return value === 'system' || value === 'light' || value === 'dark';
@@ -12,10 +15,10 @@ function isTheme(value: string | null): value is Theme {
 /** Stored preference, defaulting to following the operating system. */
 export function loadTheme(): Theme {
   try {
-    const stored = localStorage.getItem(THEME_KEY);
+    const stored = localStorage.getItem(THEME_KEY) ?? localStorage.getItem(LEGACY_THEME_KEY);
     return isTheme(stored) ? stored : 'system';
   } catch {
-    // Private-mode or blocked storage — fall back to the system setting.
+    // Private-mode or blocked storage: fall back to the system setting.
     return 'system';
   }
 }
@@ -30,6 +33,7 @@ export function applyTheme(theme: Theme): void {
   else root.setAttribute('data-theme', theme);
   try {
     localStorage.setItem(THEME_KEY, theme);
+    localStorage.removeItem(LEGACY_THEME_KEY);
   } catch {
     // Preference just won't persist across reloads.
   }

@@ -11,10 +11,10 @@ import type { Device, DeviceKind } from './devices';
 /**
  * What to do with the device's authorization.
  *
- * - `authorize`  — `enable`: approve it (or pre-approve it before it is plugged in)
- * - `reject`     — `disable`: refuse it
- * - `discovered` — back to waiting for approval
- * - `keep`       — emit no authorization line
+ * - `authorize`: `enable`: approve it (or pre-approve it before it is plugged in)
+ * - `reject`:    `disable`: refuse it
+ * - `discovered`: back to waiting for approval
+ * - `keep`:      emit no authorization line
  */
 export type AuthAction = 'authorize' | 'reject' | 'discovered' | 'keep';
 
@@ -41,7 +41,7 @@ export interface OnboardingOptions {
 
   /** Emit `set name` from the Name column. Default true. */
   setName?: boolean;
-  /** Emit the Comments column — `description` on a switch, `location` on an AP. Default true. */
+  /** Emit the Comments column: `description` on a switch, `location` on an AP. Default true. */
   setComment?: boolean;
   /** Text added to every device's comment, after its own. Default ''. */
   bulkComment?: string;
@@ -61,18 +61,18 @@ export interface OnboardingOptions {
    * their ID. Default false.
    */
   renameSwitches?: boolean;
-  /** `set fsw-wan1-admin …`. Default 'authorize'. */
+  /** `set fsw-wan1-admin ...`. Default 'authorize'. */
   switchAuth?: AuthAction;
   /** FortiLink interface: `set fsw-wan1-peer` and the group's `set fortilink`. Default 'fortilink'. */
   fortilink?: string;
   /** Switch group for rows without their own. Default '' (none). */
   switchGroup?: string;
-  /** `set switch-profile …`. Default '' (leave alone). */
+  /** `set switch-profile ...`. Default '' (leave alone). */
   switchProfile?: string;
-  /** `set access-profile …`. Default '' (leave alone). */
+  /** `set access-profile ...`. Default '' (leave alone). */
   accessProfile?: string;
 
-  /** `set admin …`. Default 'authorize'. */
+  /** `set admin ...`. Default 'authorize'. */
   apAuth?: AuthAction;
   /**
    * FortiAP profile for rows without their own. `{model}` becomes the
@@ -153,7 +153,7 @@ export function generateOnboarding(
   if (hasSwitches && !o.fortilink) {
     warnings.push({
       message:
-        'no FortiLink interface set — a switch that is not connected yet cannot be pre-authorized without one',
+        'no FortiLink interface set: a switch that is not connected yet cannot be pre-authorized without one',
     });
   }
 
@@ -171,7 +171,7 @@ export function generateOnboarding(
       if (comment.length > max) {
         warnings.push({
           line: device.row,
-          message: `${device.serial}: comment is ${comment.length} characters; a ${kindLabel(device.kind)} ${isAp ? 'location' : 'description'} holds ${max} — cut short`,
+          message: `${device.serial}: comment is ${comment.length} characters; a ${kindLabel(device.kind)} ${isAp ? 'location' : 'description'} holds ${max}, cut short`,
         });
         comment = comment.slice(0, max).trimEnd();
       }
@@ -191,14 +191,14 @@ export function generateOnboarding(
         if (!/^[A-Za-z0-9_-]+$/.test(id)) {
           warnings.push({
             line: device.row,
-            message: `${device.serial}: "${id}" may be refused as a switch ID — FortiOS documents letters, digits, - and _ only`,
+            message: `${device.serial}: "${id}" may be refused as a switch ID: FortiOS documents letters, digits, - and _ only`,
           });
         }
         if (id.length > MAX_SWITCH_ID_EARLY && id.length <= MAX_NAME) {
           warnings.push({
             line: device.row,
             kind: 'fix',
-            message: `${device.serial}: "${id}" is ${id.length} characters — fine on current FortiOS (35), but 7.4.0 allowed only ${MAX_SWITCH_ID_EARLY} in a switch ID`,
+            message: `${device.serial}: "${id}" is ${id.length} characters, fine on current FortiOS (35), but 7.4.0 allowed only ${MAX_SWITCH_ID_EARLY} in a switch ID`,
           });
         }
       }
@@ -269,7 +269,7 @@ export function generateOnboarding(
   for (const [group, models] of apGroupModels) {
     if (models.size > 1) {
       warnings.push({
-        message: `FortiAP group "${group}" would hold ${[...models].join(', ')} — a FortiAP group takes one model; split it with a Group column`,
+        message: `FortiAP group "${group}" would hold ${[...models].join(', ')}: a FortiAP group takes one model; split it with a Group column`,
       });
     }
   }
@@ -302,7 +302,7 @@ export function generateOnboarding(
     }
     for (const group of split) {
       warnings.push({
-        message: `group "${group}" spans more than one batch, and "set" replaces the members each time — only the last batch would remain. Use append, or one batch`,
+        message: `group "${group}" spans more than one batch, and "set" replaces the members each time: only the last batch would remain. Use append, or one batch`,
       });
     }
   }
@@ -329,7 +329,7 @@ function memberLines(mode: 'append' | 'set', field: string, serials: string[]): 
   return lines;
 }
 
-/** Group name → member serials, in first-seen order. */
+/** Group name -> member serials, in first-seen order. */
 function groupsOf(items: Planned[]): Map<string, string[]> {
   const groups = new Map<string, string[]>();
   for (const p of items) {
@@ -427,7 +427,7 @@ function csvCell(value: string): string {
 }
 
 /**
- * The device list as CSV, with the batch each device landed in — the
+ * The device list as CSV, with the batch each device landed in: the
  * record of what was added, FortiCloud keys included.
  */
 export function inventoryCsv(batches: Batch[]): string {

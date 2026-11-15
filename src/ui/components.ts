@@ -163,7 +163,7 @@ export function outputPane(downloadName: string): OutputPane {
   const stats = el('div', 'stats', '');
   const warnBox = el('div', 'warnings');
   warnBox.style.display = 'none';
-  // Notes about things the tool corrected itself — collapsed, since the
+  // Notes about things the tool corrected itself: collapsed, since the
   // output is already right and they are only there to be checked.
   const fixBox = el('details', 'fixes');
   fixBox.hidden = true;
@@ -174,7 +174,7 @@ export function outputPane(downloadName: string): OutputPane {
 
   copyBtn.addEventListener('click', async () => {
     await navigator.clipboard.writeText(pre.textContent ?? '');
-    copiedNote.textContent = 'Copied ✓';
+    copiedNote.textContent = 'Copied \u2713';
     setTimeout(() => (copiedNote.textContent = ''), 1500);
   });
 
@@ -192,7 +192,7 @@ export function outputPane(downloadName: string): OutputPane {
     root,
     update(output, statsLine, warnings, isEmpty = output.trim() === '') {
       pre.textContent = output;
-      // Some tools emit a scaffold (`config … / end`) even with nothing to
+      // Some tools emit a scaffold (`config ... / end`) even with nothing to
       // put in it, so callers can override what counts as empty.
       setShown(pre, !isEmpty);
       setShown(empty, isEmpty);
@@ -241,7 +241,7 @@ export function inputPane(
   textarea.addEventListener('input', () => onInput(textarea.value));
 
   const btnRow = el('div', 'btn-row');
-  const fileBtn = el('button', 'btn', 'Load file…');
+  const fileBtn = el('button', 'btn', 'Load file...');
   const fileInput = el('input');
   fileInput.type = 'file';
   fileInput.accept = '.txt,.csv,.list,text/plain';

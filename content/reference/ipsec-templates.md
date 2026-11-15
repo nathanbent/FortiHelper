@@ -1,6 +1,6 @@
 ---
 id: ipsec-templates
-title: IPsec — route-based site-to-site
+title: IPsec: route-based site-to-site
 topic: ipsec
 kind: config
 order: 35

@@ -1,5 +1,5 @@
 /**
- * A small read-only .xlsx reader — enough to pull the cell text out of a
+ * A small read-only .xlsx reader: enough to pull the cell text out of a
  * device list, with no dependency and nothing leaving the page.
  *
  * An .xlsx file is a zip of XML parts. The zip is read from its central
@@ -9,7 +9,7 @@
  * the same code runs in the browser and under the test runner.
  *
  * Not handled: zip64 archives, encrypted workbooks, the legacy binary
- * .xls format, and formatting — a date cell reads as its serial number.
+ * .xls format, and formatting: a date cell reads as its serial number.
  */
 
 export interface XlsxSheet {
@@ -22,7 +22,7 @@ const SIG_EOCD = 0x06054b50;
 const SIG_CENTRAL = 0x02014b50;
 const SIG_LOCAL = 0x04034b50;
 
-/** Rows past this are ignored — a stray formatted cell at row 1048576 must not allocate a million rows. */
+/** Rows past this are ignored: a stray formatted cell at row 1048576 must not allocate a million rows. */
 const MAX_ROWS = 20000;
 const MAX_COLS = 200;
 
@@ -49,7 +49,7 @@ function readCentralDirectory(bytes: Uint8Array): Map<string, ZipEntry> {
   const count = view.getUint16(eocd + 10, true);
   let offset = view.getUint32(eocd + 16, true);
   if (count === 0xffff || offset === 0xffffffff) {
-    throw new Error('this workbook uses the zip64 format, which is not supported — save it as CSV instead');
+    throw new Error('this workbook uses the zip64 format, which is not supported: save it as CSV instead');
   }
 
   const decoder = new TextDecoder();
@@ -73,7 +73,7 @@ function readCentralDirectory(bytes: Uint8Array): Map<string, ZipEntry> {
 
 async function inflateRaw(data: Uint8Array): Promise<Uint8Array> {
   if (typeof DecompressionStream === 'undefined') {
-    throw new Error('this browser cannot unpack .xlsx files — save the sheet as CSV instead');
+    throw new Error('this browser cannot unpack .xlsx files: save the sheet as CSV instead');
   }
   const stream = new Blob([data.slice()]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
   return new Uint8Array(await new Response(stream).arrayBuffer());
@@ -137,7 +137,7 @@ function parseSharedStrings(xml: string | null): string[] {
   return out;
 }
 
-/** "BC12" → 0-based column 54. Returns -1 when there are no letters. */
+/** "BC12" -> 0-based column 54. Returns -1 when there are no letters. */
 function columnIndex(ref: string): number {
   let n = 0;
   let seen = false;
@@ -213,7 +213,7 @@ export async function readXlsx(bytes: Uint8Array): Promise<XlsxSheet[]> {
   if (workbook === null) {
     throw new Error(
       entries.has('EncryptedPackage')
-        ? 'this workbook is password-protected — remove the password or save it as CSV'
+        ? 'this workbook is password-protected: remove the password or save it as CSV'
         : 'not an .xlsx workbook (xl/workbook.xml is missing)',
     );
   }

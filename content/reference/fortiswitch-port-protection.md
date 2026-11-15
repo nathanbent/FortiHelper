@@ -1,12 +1,12 @@
 ---
 id: fortiswitch-port-protection
-title: FortiSwitch — loop guard, storm control, DHCP snooping
+title: FortiSwitch: loop guard, storm control, DHCP snooping
 topic: fortiswitch
 kind: config
 order: 63
 ---
 
-Run on the FortiGate, not the switch. Starting templates, not verified on every release — option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Run on the FortiGate, not the switch. Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
 
 ### Loop guard on a port
 

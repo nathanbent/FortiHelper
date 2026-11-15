@@ -293,12 +293,12 @@ describe('generateFromRecords with spreadsheet input', () => {
     expect(result.warnings).toEqual([
       {
         message:
-          "Warning: renamed 'Web Server (192.0.2.85)' to 'Web Server 192.0.2.85' — " +
+          "Warning: renamed 'Web Server (192.0.2.85)' to 'Web Server 192.0.2.85': " +
           "FortiOS rejects ( ) < > ' # in object names.",
       },
       {
         message:
-          'Skipped 1 0.0.0.0/32 object(s) — unconfigured placeholders in the ' +
+          'Skipped 1 0.0.0.0/32 object(s): unconfigured placeholders in the ' +
           'source export: Prefix-Default Gateway',
       },
     ]);
@@ -323,7 +323,7 @@ describe('generateFromRecords with spreadsheet input', () => {
       {
         line: 1,
         message:
-          "Warning: 'Prefix-X14 IP' is 0.0.0.0/32 — likely an unconfigured " +
+          "Warning: 'Prefix-X14 IP' is 0.0.0.0/32, likely an unconfigured " +
           'placeholder in the source export.',
       },
     ]);

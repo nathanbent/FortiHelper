@@ -23,7 +23,7 @@ import {
 } from '../src/lib/forti-edit';
 
 // @types/node is not installed in this project, so access node:fs through
-// process.getBuiltinModule (Node >= 20.16) with a minimal local declaration —
+// process.getBuiltinModule (Node >= 20.16) with a minimal local declaration:
 // keeps `tsc --noEmit` clean without adding dependencies.
 declare const process: {
   getBuiltinModule(name: 'node:fs'): {
@@ -38,7 +38,7 @@ function fixture(name: string): string {
 
 const SAMPLE = () => fixture('forti-edit-sample.input.txt');
 
-/** [name, expected fixture, section, rules, mode] — expected = Python stdout. */
+/** [name, expected fixture, section, rules, mode]: expected = Python stdout. */
 const parityCases: [string, string, string, Rule[], OutputMode][] = [
   [
     'contains + append, delta',

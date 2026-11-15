@@ -54,8 +54,8 @@ export interface ObjectHelperOptions {
   sanitizeNames: boolean;
 
   /**
-   * Drop rows that would generate a 0.0.0.0/32 object — what SonicWall
-   * exports emit for unconfigured interfaces — reporting one summary
+   * Drop rows that would generate a 0.0.0.0/32 object (what SonicWall
+   * exports emit for unconfigured interfaces), reporting one summary
    * warning. Off keeps the objects, warning per row instead. Not part of
    * the Python script.
    */
@@ -70,13 +70,13 @@ export interface ObjectHelperOptions {
   normalizeAddresses: boolean;
   /**
    * In the named input modes, swap a row's name and address when the name
-   * is the address and the value is not — input entered address-first.
+   * is the address and the value is not: input entered address-first.
    */
   fixSwappedPairs: boolean;
   /** Trim object names over the FortiGate 79-character limit. */
   shortenLongNames: boolean;
   /**
-   * When a name is already used by a *different* address, add -2, -3, …
+   * When a name is already used by a *different* address, add -2, -3, ...
    * instead of skipping the row. Exact repeats are always skipped.
    */
   renameDuplicateNames: boolean;

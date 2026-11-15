@@ -2,8 +2,8 @@ name: CI
 
 on:
   pull_request:
-  # Direct commits to main never open a PR — which is exactly how a file of
-  # pre-shared keys once landed — so check those too.
+  # Direct commits to main never open a PR, which is exactly how a file of
+  # pre-shared keys once landed, so check those too.
   push:
     branches: [main]
   workflow_dispatch:

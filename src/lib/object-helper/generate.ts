@@ -31,7 +31,7 @@ function safe(ctx: Ctx, name: string): string {
 
 function buildBaseName(ctx: Ctx, nameFromInput: string | null, fqdn: string): string {
   const { opts } = ctx;
-  // In the named modes a missing (null) name falls back to the FQDN — the
+  // In the named modes a missing (null) name falls back to the FQDN: the
   // classic input formats always supply a string, so this only happens for
   // spreadsheet rows with an empty name cell.
   const raw = opts.useExplicitNames || opts.nameFqdnDelimiter ? (nameFromInput ?? fqdn) : fqdn;
@@ -70,7 +70,7 @@ function ipObjTail(ctx: Ctx, ip: string, idx: number): string {
 /**
  * The sanitized name `head + tail`. Over the FortiGate limit it is either
  * shortened (keeping the tail, so `-IP-1` / `-Group` survive) or, with
- * shortening off, counted as an issue — safeObjName has already warned.
+ * shortening off, counted as an issue: safeObjName has already warned.
  */
 function finalName(ctx: Ctx, head: string, tail = ''): { name: string; full: string } {
   const full = safe(ctx, head + tail);
@@ -299,7 +299,7 @@ export function generateObjects(
 }
 
 /**
- * Generation over already-parsed records — the spreadsheet input mode
+ * Generation over already-parsed records: the spreadsheet input mode
  * builds its records from pasted cells rather than lines of text.
  * Behavior past parsing is identical to generateObjects().
  */
@@ -341,7 +341,7 @@ function generateCore(
   /**
    * Final, unique name for a new object, or null when the row is skipped.
    * `sig` identifies the address: a name reused for the same address is a
-   * plain duplicate, one reused for a different address is a conflict —
+   * plain duplicate; one reused for a different address is a conflict,
    * renamed with renameDuplicateNames (or when shortening caused it),
    * otherwise skipped with a warning.
    */
@@ -354,7 +354,7 @@ function generateCore(
       if (existing.sig === sig) {
         duplicates++;
         warn(
-          `Duplicate object name skipped: '${name}' — same address as line ${existing.line}`,
+          `Duplicate object name skipped: '${name}', same address as line ${existing.line}`,
           lineno,
           'fix',
         );
@@ -364,7 +364,7 @@ function generateCore(
         duplicates++;
         issues.nameConflicts++;
         warn(
-          `Duplicate object name skipped: '${name}' — line ${existing.line} already uses it ` +
+          `Duplicate object name skipped: '${name}', line ${existing.line} already uses it ` +
             'for a different address',
           lineno,
         );
@@ -373,7 +373,7 @@ function generateCore(
       name = uniqueName(name, (n) => createdObjectNames.has(n));
       if (!shortened) {
         warn(
-          `Renamed '${fitted}' to '${name}' — line ${existing.line} already uses that name ` +
+          `Renamed '${fitted}' to '${name}': line ${existing.line} already uses that name ` +
             'for a different address',
           lineno,
           'fix',
@@ -395,7 +395,7 @@ function generateCore(
   for (const record of records) {
     const { lineno, name: nameLine, value: fqdnLine, comment: inputComment } = record;
     try {
-      // Direct IP / CIDR inputs — no DNS, no FQDN object
+      // Direct IP / CIDR inputs: no DNS, no FQDN object
       const network = tryParseIpNetwork(fqdnLine);
       if (network !== null) {
         let rawName: string;
@@ -403,7 +403,7 @@ function generateCore(
         else if (network.prefixlen === 32) rawName = network.networkAddress;
         else rawName = `${network.networkAddress}${opts.ipCidrSeparator}${network.prefixlen}`;
         const baseObjName = applyPrefix(ctx, safe(ctx, rawName));
-        // 0.0.0.0/32 is what exports emit for an unconfigured interface —
+        // 0.0.0.0/32 is what exports emit for an unconfigured interface:
         // FortiGate accepts it, but it almost never means anything.
         const isPlaceholder = network.prefixlen === 32 && network.networkAddress === '0.0.0.0';
         if (isPlaceholder && opts.skipPlaceholderIps) {
@@ -418,7 +418,7 @@ function generateCore(
           writtenDirectIp++;
           if (isPlaceholder) {
             warn(
-              `Warning: '${objName}' is 0.0.0.0/32 — likely an unconfigured ` +
+              `Warning: '${objName}' is 0.0.0.0/32, likely an unconfigured ` +
                 `placeholder in the source export.`,
               lineno,
             );
@@ -430,7 +430,7 @@ function generateCore(
         continue;
       }
 
-      // IP ranges (e.g. "10.0.0.1-10.0.0.9") — no DNS, no FQDN object
+      // IP ranges (e.g. "10.0.0.1-10.0.0.9"): no DNS, no FQDN object
       const ipRange = tryParseIpRange(fqdnLine);
       if (ipRange !== null) {
         const rawName = nameLine ? nameLine : `${ipRange.start}-${ipRange.end}`;
@@ -498,17 +498,17 @@ function generateCore(
       const who = nameLine !== null ? `name='${nameLine}' ` : '';
       let msg = e instanceof Error ? e.message : String(e);
       if (!opts.normalizeAddresses && msg.includes('looks like a URL')) {
-        msg += ' — or turn on "Clean up URLs"';
+        msg += ', or turn on "Clean up URLs"';
       }
       warn(`Skipped ${who}fqdn='${fqdnLine}': ${msg}`, lineno);
     }
   }
 
-  // One summary line instead of a warning per dropped row — a SonicWall
+  // One summary line instead of a warning per dropped row: a SonicWall
   // export can carry dozens of these stubs.
   if (placeholdersSkipped.length) {
     warn(
-      `Skipped ${placeholdersSkipped.length} 0.0.0.0/32 object(s) — unconfigured ` +
+      `Skipped ${placeholdersSkipped.length} 0.0.0.0/32 object(s): unconfigured ` +
         `placeholders in the source export: ${placeholdersSkipped.join(', ')}`,
     );
   }

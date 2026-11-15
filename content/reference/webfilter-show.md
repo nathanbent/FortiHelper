@@ -1,6 +1,6 @@
 ---
 id: webfilter-show
-title: Web filter — what is configured
+title: Web filter: what is configured
 topic: webfilter
 kind: diagnostics
 order: 65

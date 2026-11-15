@@ -9,11 +9,11 @@ export type UrlFilterAction = 'block' | 'exempt' | 'allow' | 'monitor';
 /**
  * Shape of the generated config.
  *
- * - `bare`     — the original script's `edit "<domain>" / set status / next`
+ * - `bare`:    the original script's `edit "<domain>" / set status / next`
  *                blocks, keyed by domain. Kept as the default for parity.
- * - `entries`  — numbered entries (`edit 1 / set url "<domain>" / …`) to paste
+ * - `entries`: numbered entries (`edit 1 / set url "<domain>" / ...`) to paste
  *                inside an existing `config entries` block.
- * - `full`     — a complete `config webfilter urlfilter` list wrapping the
+ * - `full`:    a complete `config webfilter urlfilter` list wrapping the
  *                numbered entries.
  */
 export type WebfilterFormat = 'bare' | 'entries' | 'full';
@@ -33,9 +33,9 @@ const NATIVE_ACTIONS: Record<string, UrlFilterAction> = {
 };
 
 /**
- * Other vendors' action verbs → the closest FortiOS action, for lists exported
+ * Other vendors' action verbs -> the closest FortiOS action, for lists exported
  * from Sophos, WatchGuard, SonicWall, Lightspeed, and the like. `warn` has no
- * FortiOS equivalent in a static URL filter — `monitor` (allow + log) is the
+ * FortiOS equivalent in a static URL filter: `monitor` (allow + log) is the
  * nearest behavior, and using it surfaces a warning so the mapping is visible.
  */
 export const VENDOR_VERBS: Record<string, UrlFilterAction> = {
@@ -104,10 +104,10 @@ export const EXEMPT_FLAG_LABELS: Record<ExemptFlag, string> = {
 
 /** Options mirroring the webfilter-generator.py CLI flags, plus URL-filter fields. */
 export interface WebfilterOptions {
-  /** `set status …` value for each entry, or 'omit' for no status line. Default 'enable'. */
+  /** `set status ...` value for each entry, or 'omit' for no status line. Default 'enable'. */
   status?: 'enable' | 'disable' | 'omit';
   /**
-   * `set action …`. In `bare` format 'block' emits no action line (matching the
+   * `set action ...`. In `bare` format 'block' emits no action line (matching the
    * original script); the `entries` and `full` formats always emit it.
    */
   action?: UrlFilterAction;
@@ -126,7 +126,7 @@ export interface WebfilterOptions {
   actionDelimiter?: ActionDelimiter;
   /**
    * With `perEntryActions`, also accept other vendors' verbs as suffixes
-   * (deny → block, permit → allow, warn → monitor, bypass → exempt, …).
+   * (deny -> block, permit -> allow, warn -> monitor, bypass -> exempt, ...).
    * Default false.
    */
   vendorVerbs?: boolean;
@@ -142,18 +142,18 @@ export interface WebfilterOptions {
   /** Output shape. Default 'bare'. */
   format?: WebfilterFormat;
   /**
-   * `set type …`. Omitted when undefined. 'auto' picks per entry: a URL
+   * `set type ...`. Omitted when undefined. 'auto' picks per entry: a URL
    * containing `*` is a wildcard, anything else is simple.
    */
   type?: UrlFilterType | 'auto';
   /**
    * Prefix added to each domain when `type` is 'wildcard', e.g. 'facebook.com'
-   * → '*facebook.com'. Domains that already start with `*` are left alone.
+   * -> '*facebook.com'. Domains that already start with `*` are left alone.
    * Default 'none'.
    */
   wildcardPrefix?: WildcardPrefix;
   /**
-   * `set exempt …` — operations exempt URLs skip. Only emitted when `action`
+   * `set exempt ...`: operations exempt URLs skip. Only emitted when `action`
    * is 'exempt'. `all` subsumes the rest, so it is emitted on its own.
    */
   exempt?: ExemptFlag[];
@@ -162,12 +162,12 @@ export interface WebfilterOptions {
   startId?: number;
   /** `edit <id>` of the URL filter list, `full` format only. Default 1. */
   listId?: number;
-  /** `set name …` of the URL filter list, `full` format only. Default 'webfilter'. */
+  /** `set name ...` of the URL filter list, `full` format only. Default 'webfilter'. */
   listName?: string;
-  /** `set comment …` of the URL filter list, `full` format only. Omitted when empty. */
+  /** `set comment ...` of the URL filter list, `full` format only. Omitted when empty. */
   comment?: string;
   /**
-   * `set include-subdomains …` on the list, `full` format only. Omitted when
+   * `set include-subdomains ...` on the list, `full` format only. Omitted when
    * undefined. Per the admin guide this applies to `simple` entries only,
    * where it defaults to enable (slack.com also matches hooks.slack.com).
    */
@@ -198,7 +198,7 @@ export interface WebfilterResult {
 }
 
 /**
- * The `type` for one entry. Under 'auto', `*` is what makes a URL a wildcard —
+ * The `type` for one entry. Under 'auto', `*` is what makes a URL a wildcard:
  * it has no special meaning in a simple entry, so its presence is the signal.
  */
 export function resolveType(
@@ -349,7 +349,7 @@ export function generateWebfilter(input: string, options: WebfilterOptions = {})
             warnedWarnMapping = true;
             warnings.push({
               message:
-                'warn has no FortiOS equivalent in a static URL filter — mapped to monitor (allow + log)',
+                'warn has no FortiOS equivalent in a static URL filter, mapped to monitor (allow + log)',
             });
           }
         } else if (actionDelimiter !== '-') {
@@ -358,7 +358,7 @@ export function generateWebfilter(input: string, options: WebfilterOptions = {})
           // certainly a typo'd verb worth flagging.
           warnings.push({
             line: i + 1,
-            message: `"${split.suffix}" is not a recognized action — line kept as-is`,
+            message: `"${split.suffix}" is not a recognized action, line kept as-is`,
           });
         }
       }
@@ -380,7 +380,7 @@ export function generateWebfilter(input: string, options: WebfilterOptions = {})
       if (kept !== resolved) {
         warnings.push({
           line: i + 1,
-          message: `"${s}" repeats with a different action — kept ${kept}, ignored ${resolved}`,
+          message: `"${s}" repeats with a different action: kept ${kept}, ignored ${resolved}`,
         });
       }
       continue;
@@ -406,7 +406,7 @@ export function generateWebfilter(input: string, options: WebfilterOptions = {})
       : out;
 
   if (exempt.length && action !== 'exempt' && !entries.some((e) => e.action === 'exempt')) {
-    warnings.push({ message: 'set exempt is only used when the action is exempt — ignored' });
+    warnings.push({ message: 'set exempt is only used when the action is exempt, ignored' });
   }
   // Under 'auto' the list may still hold simple entries, so only an explicit
   // non-simple type makes the setting pointless.

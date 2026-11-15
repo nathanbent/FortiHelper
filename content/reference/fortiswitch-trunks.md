@@ -1,12 +1,12 @@
 ---
 id: fortiswitch-trunks
-title: FortiSwitch — LAG, MCLAG, and custom commands
+title: FortiSwitch: LAG, MCLAG, and custom commands
 topic: fortiswitch
 kind: config
 order: 64
 ---
 
-Run on the FortiGate, not the switch. Starting templates, not verified on every release — option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Run on the FortiGate, not the switch. Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
 
 ### LACP trunk (LAG) on one switch
 

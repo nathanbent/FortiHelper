@@ -58,7 +58,7 @@ async function resolveOne(fqdn: string, timeoutMs: number, maxIps: number): Prom
   for (const url of endpoints) {
     try {
       const ips = await queryDoH(url, timeoutMs);
-      // Sorted unique, capped — same as the Python resolver.
+      // Sorted unique, capped: same as the Python resolver.
       return [...new Set(ips)].sort().slice(0, maxIps);
     } catch (e) {
       lastError = e;

@@ -1,16 +1,16 @@
 ---
 category: site
-description: A minimal, generic branch build — interfaces, route, DNS, NTP, one outbound policy, and a parameterised management source.
+description: A minimal, generic branch build: interfaces, route, DNS, NTP, one outbound policy, and a parameterised management source.
 order: 90
 ---
-# Example — branch office basics
+# Example: branch office basics
 
 ## How to use
 1. Fill in the fields on the left
 2. Read the generated config before running any of it
 3. Copy it into the FortiGate, section by section
 
-This is a deliberately small, generic example — it exists to show the template
+This is a deliberately small, generic example: it exists to show the template
 format, not to be a build standard. Keep your real templates out of this repo:
 drop them in `content/quickstart/private/`, or paste one into the page under
 **Use a different template**.
@@ -112,7 +112,7 @@ config firewall policy
 end
 
 # Trusted remote-management source
-# Keep the network you manage from in a variable, not a literal — a template
+# Keep the network you manage from in a variable, not a literal: a template
 # that names it is a template you cannot share.
 config firewall address
     edit "<trusted-mgmt-object>"
@@ -128,7 +128,7 @@ config firewall addrgrp
     next
 end
 
-# Restrict admin access to that group. Pair this with MFA — a source
+# Restrict admin access to that group. Pair this with MFA: a source
 # allowlist is a filter, not an authentication control.
 config system admin
     edit "admin"

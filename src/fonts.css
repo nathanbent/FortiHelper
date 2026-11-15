@@ -1,0 +1,28 @@
+/*
+ * Self-hosted variable fonts. Vite fingerprints the files at build time, so
+ * a changed font gets a new filename and the long cache lifetime stays safe.
+ * Upright faces only: the UI sets no italic text.
+ */
+@font-face {
+  font-family: 'Karla';
+  src: url('./fonts/Karla-Variable.woff2') format('woff2');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('./fonts/Rubik-Variable.woff2') format('woff2');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./fonts/JetBrainsMono-Variable.woff2') format('woff2');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}

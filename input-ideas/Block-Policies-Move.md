@@ -12,21 +12,21 @@
 ## What This Script Does
 Creates deny policies for both inbound and outbound traffic matching known malicious or untrusted sources/destinations.
 
-### GeoIP Blocks (Policies 400–401)
+### GeoIP Blocks (Policies 400-401)
 Blocks traffic to/from untrusted countries:
 - China, Russia, Iran, Ukraine, Netherlands, Latvia, Greece, N. Korea, India, Pakistan, Bangladesh, Afghanistan
 
-### Internet Service DB (ISDB) Blocks (Policies 411–427)
+### Internet Service DB (ISDB) Blocks (Policies 411-427)
 Blocks traffic to/from known malicious internet services:
-- **Scanners** – Shodan, Censys, Stretchoid, InterneTTL, Tenable, NetScout, Recyber, Cyber.Casa, BinaryEdge, Rapid7, UK NCSC, CriminalIP, Internet Census Group, Shadowserver, LeakIX, Hadrian, ONYPHE, Modat, Palo Alto Networks Cortex Xpanse
-- **Malicious Servers** – Known malicious server infrastructure
-- **Tor** – Tor relay, exit, and general Tor nodes
-- **VPN** – Anonymous VPN services
-- **Botnet** – Botnet command & control servers
-- **THE Hosting** – THE Hosting hosting service
-- **Phishing** – Known phishing servers
-- **Proxy** – Known proxy servers
-- **Spam** – Known spamming servers
+- **Scanners** - Shodan, Censys, Stretchoid, InterneTTL, Tenable, NetScout, Recyber, Cyber.Casa, BinaryEdge, Rapid7, UK NCSC, CriminalIP, Internet Census Group, Shadowserver, LeakIX, Hadrian, ONYPHE, Modat, Palo Alto Networks Cortex Xpanse
+- **Malicious Servers** - Known malicious server infrastructure
+- **Tor** - Tor relay, exit, and general Tor nodes
+- **VPN** - Anonymous VPN services
+- **Botnet** - Botnet command & control servers
+- **THE Hosting** - THE Hosting hosting service
+- **Phishing** - Known phishing servers
+- **Proxy** - Known proxy servers
+- **Spam** - Known spamming servers
 
 Find and replace <Insert-At> to move policies to correct area
 

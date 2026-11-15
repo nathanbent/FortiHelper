@@ -2,8 +2,8 @@
 /**
  * Refuses to let credentials or customer identifiers reach a published repo.
  *
- * Scans exactly what `git ls-files` reports — the set of files that actually
- * get published — so anything gitignored (content/quickstart/private/, dist,
+ * Scans exactly what `git ls-files` reports: the set of files that actually
+ * get published, so anything gitignored (content/quickstart/private/, dist,
  * node_modules) is out of scope by construction.
  *
  * Run: npm run check-secrets
@@ -91,7 +91,7 @@ const RULES = [
     // Unit tests and golden fixtures carry mock resolver results, and a
     // byte-compared fixture cannot hold an inline marker without breaking the
     // comparison it exists for. Credentials and denylist terms are still
-    // checked there — only this rule is scoped.
+    // checked there; only this rule is scoped.
     skipPath: (file) => file.startsWith('tests/'),
     test: (line) => {
       for (const ip of line.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g) ?? []) {

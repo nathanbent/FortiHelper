@@ -5,9 +5,9 @@ __pycache__/
 *.pyc
 screenshot-*.png
 
-# Private quickstart templates — never committed (see README: Public and private builds)
+# Private quickstart templates: never committed (see README: Public and private builds)
 content/quickstart/private/
 
-# Site-specific terms for check-secrets — never committed, since a
+# Site-specific terms for check-secrets: never committed, since a
 # denylist of secrets publishes the strings it exists to protect
 .secrets-denylist

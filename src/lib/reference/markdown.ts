@@ -34,10 +34,10 @@ import {
  */
 
 /** A command row: `` `cmd` `` optionally followed by a dash and a description. */
-const COMMAND_RE = /^(?:[-*]\s*)?`([^`]+)`(?:\s*[-–—]\s*(.*))?$/;
+const COMMAND_RE = /^(?:[-*]\s*)?`([^`]+)`(?:\s*[-\u2013\u2014]\s*(.*))?$/;
 
 /** A colour row inside a ```colors block: `12 - Brown`. */
-const COLOR_RE = /^(\d+)\s*[-–—]\s*(.+)$/;
+const COLOR_RE = /^(\d+)\s*[-\u2013\u2014]\s*(.+)$/;
 
 const TOPIC_VALUES = new Set<string>(REFERENCE_TOPICS.map((t) => t.value));
 const KIND_VALUES = new Set<string>(REFERENCE_KINDS.map((k) => k.value));
@@ -51,9 +51,9 @@ class SheetError extends Error {}
 
 /** Split the leading `---` front matter from the body. */
 function splitFrontMatter(markdown: string): { meta: Record<string, string>; body: string } {
-  const lines = markdown.replace(/^﻿/, '').split(/\r\n|[\n\r]/);
+  const lines = markdown.replace(/^\uFEFF/, '').split(/\r\n|[\n\r]/);
   if (lines[0]?.trim() !== '---') {
-    throw new SheetError('missing front matter — the file must start with a --- block');
+    throw new SheetError('missing front matter: the file must start with a --- block');
   }
   const end = lines.findIndex((l, i) => i > 0 && l.trim() === '---');
   if (end === -1) throw new SheetError('front matter is never closed with ---');
@@ -202,7 +202,7 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
 /**
  * Every sheet under content/reference/, sorted by `order` then title.
  *
- * Eager and raw so the markdown is inlined at build time — the deployed app
+ * Eager and raw so the markdown is inlined at build time: the deployed app
  * makes no requests for its own content.
  */
 export function loadSheets(): ParsedSheet[] {

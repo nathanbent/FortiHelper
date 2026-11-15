@@ -2,7 +2,7 @@
  * Reference content model.
  *
  * Topics and kinds are declared once, as data, and their types are derived
- * from those lists — adding a new topic or kind is a one-line change here,
+ * from those lists: adding a new topic or kind is a one-line change here,
  * with the compiler then pointing at anything that needs updating.
  */
 
@@ -36,7 +36,7 @@ export interface ReferenceEntry {
   text?: string;
   /** Short human description shown next to the command/text. */
   description?: string;
-  /** FortiGate color id — renders a swatch beside the row. */
+  /** FortiGate color id: renders a swatch beside the row. */
   swatch?: number;
 }
 

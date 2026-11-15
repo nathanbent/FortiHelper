@@ -60,7 +60,7 @@ export const deviceOnboardingTool: Tool = {
   id: 'onboarding',
   title: 'Switch & AP Onboarding',
   description:
-    'Turn a list of FortiSwitch and FortiAP serial numbers into the FortiGate config that names, groups, and approves them — in batches you can paste one at a time.',
+    'Turn a list of FortiSwitch and FortiAP serial numbers into the FortiGate config that names, groups, and approves them, in batches you can paste one at a time.',
   mount(container) {
     // ---------- state ----------
     const opts: Required<OnboardingOptions> = {
@@ -126,7 +126,7 @@ export const deviceOnboardingTool: Tool = {
     };
 
     const fileRow = el('div', 'btn-row');
-    const fileBtn = el('button', 'btn', 'Load CSV / XLSX…');
+    const fileBtn = el('button', 'btn', 'Load CSV / XLSX...');
     const fileInput = el('input');
     fileInput.type = 'file';
     fileInput.accept = '.csv,.tsv,.txt,.xlsx,text/csv,text/plain';
@@ -187,9 +187,9 @@ export const deviceOnboardingTool: Tool = {
           sheetField.hidden = sheets.length < 2;
           setText(rowsToTsv(sheets[first].rows));
         } else if (/\.xls$/i.test(file.name) || (bytes[0] === 0xd0 && bytes[1] === 0xcf)) {
-          throw new Error('the old .xls format is not supported — save it as .xlsx or CSV');
+          throw new Error('the old .xls format is not supported: save it as .xlsx or CSV');
         } else {
-          setText(new TextDecoder().decode(bytes).replace(/^﻿/, ''));
+          setText(new TextDecoder().decode(bytes).replace(/^\uFEFF/, ''));
         }
         fileNote.textContent = file.name;
       } catch (err) {
@@ -255,7 +255,7 @@ export const deviceOnboardingTool: Tool = {
         lines = [text.replace(/[\r\n]+$/, ''), cells.join(delim).replace(/\t+$/, '')];
       }
       addNote.textContent = dropped.length
-        ? `Added — but the list has no column for ${dropped.join(', ')}, so that was left out.`
+        ? `Added, but the list has no column for ${dropped.join(', ')}, so that was left out.`
         : `Added ${values.get('serial')}.`;
       for (const f of addFields) f.input.value = '';
       addFields[0].input.focus();
@@ -276,7 +276,7 @@ export const deviceOnboardingTool: Tool = {
       selectField(
         'Device type',
         [
-          { value: 'auto', label: 'Auto — from the Type column, then the serial number' },
+          { value: 'auto', label: 'Auto, from the Type column, then the serial number' },
           { value: 'switch', label: 'All FortiSwitch' },
           { value: 'ap', label: 'All FortiAP' },
         ],
@@ -344,7 +344,7 @@ export const deviceOnboardingTool: Tool = {
         ];
         if (field !== 'serial') options.push(['none', '(none)']);
         for (let c = 0; c < width; c++) {
-          const header = headers?.[c] ? ` — ${headers[c].slice(0, 24)}` : '';
+          const header = headers?.[c] ? `: ${headers[c].slice(0, 24)}` : '';
           options.push([String(c), `Column ${columnLabel(c)}${header}`]);
         }
         select.replaceChildren(
@@ -404,7 +404,7 @@ export const deviceOnboardingTool: Tool = {
 
       const apProfile = text_('FortiAP profile', 'apProfile', 'e.g. FAP{model}-default');
       apProfile.append(
-        el('span', 'hint', '{model} is read from each serial: FP231F… gives FAP231F-default'),
+        el('span', 'hint', '{model} is read from each serial: FP231F... gives FAP231F-default'),
       );
       const apGroup = text_('FortiAP group', 'apGroup', 'optional');
       apGroup.append(el('span', 'hint', 'one AP model per group'));
@@ -422,7 +422,7 @@ export const deviceOnboardingTool: Tool = {
         checkbox('Rename from serial number to name', opts.renameSwitches, (v) => {
           opts.renameSwitches = v;
           regenerate();
-        }, 'instead of setting a name — for switches the FortiGate already lists, FortiOS 7.4+'),
+        }, 'instead of setting a name, for switches the FortiGate already lists, FortiOS 7.4+'),
         el('div', 'subhead', 'FortiAP'),
         selectField('Approve / reject', AUTH_OPTIONS, opts.apAuth, (v) => {
           opts.apAuth = v as AuthAction;
@@ -441,7 +441,7 @@ export const deviceOnboardingTool: Tool = {
           opts.setComment = v;
           regenerate();
         }, 'switch description (63 characters) / AP location (35)'),
-        text_('Comment for every device', 'bulkComment', 'added after each device’s own comment'),
+        text_('Comment for every device', 'bulkComment', 'added after each device\u2019s own comment'),
         checkbox('Put the FortiCloud key in the comment', opts.keyInComment, (v) => {
           opts.keyInComment = v;
           regenerate();
@@ -449,8 +449,8 @@ export const deviceOnboardingTool: Tool = {
         selectField(
           'Group members',
           [
-            { value: 'append', label: 'append — add to what the group already has' },
-            { value: 'set', label: 'set — replace the group’s members' },
+            { value: 'append', label: 'append: add to what the group already has' },
+            { value: 'set', label: 'set: replace the group\u2019s members' },
           ],
           opts.memberMode,
           (v) => {
@@ -458,8 +458,8 @@ export const deviceOnboardingTool: Tool = {
             regenerate();
           },
         ),
-        text_('Switch profile', 'switchProfile', 'optional — set switch-profile'),
-        text_('Switch access profile', 'accessProfile', 'optional — set access-profile'),
+        text_('Switch profile', 'switchProfile', 'optional: set switch-profile'),
+        text_('Switch access profile', 'accessProfile', 'optional: set access-profile'),
       ];
       const details = el('details', 'adv');
       details.open = advancedOpen;
@@ -508,12 +508,12 @@ export const deviceOnboardingTool: Tool = {
           if (aps) parts.push(plural(aps, 'AP'));
           const title = el('span', 'batch-title', `Batch ${batch.index} of ${batches.length}`);
           const meta = el('span', 'batch-meta', parts.join(', '));
-          const done = el('span', 'copied', copied.has(batch.output) ? 'Copied ✓' : '');
+          const done = el('span', 'copied', copied.has(batch.output) ? 'Copied \u2713' : '');
           const copyBtn = el('button', 'btn', 'Copy');
           copyBtn.addEventListener('click', async () => {
             await navigator.clipboard.writeText(batch.output);
             copied.add(batch.output);
-            done.textContent = 'Copied ✓';
+            done.textContent = 'Copied \u2713';
             card.classList.add('done');
           });
           head.append(title, meta, done, copyBtn);
@@ -599,7 +599,7 @@ export const deviceOnboardingTool: Tool = {
         (f) => `${f.label} ${columnLabel(columns[f.field]!)}`,
       );
       columnsSummary.textContent =
-        table.rows.length && found.length ? `Columns — ${found.join(' · ')}` : 'Columns';
+        table.rows.length && found.length ? `Columns: ${found.join(' \u00b7 ')}` : 'Columns';
 
       const read = readDevices(table, columns, { kind: kindChoice });
       const result = generateOnboarding(read.devices, opts);
@@ -616,7 +616,7 @@ export const deviceOnboardingTool: Tool = {
         plural(batches.length, 'batch', 'batches'),
       ];
       if (read.skipped) parts.push(`${read.skipped} skipped`);
-      stats.textContent = parts.join(' · ');
+      stats.textContent = parts.join(' \u00b7 ');
       setShown(stats, !isEmpty || read.skipped > 0);
 
       renderBatches();

@@ -1,12 +1,12 @@
 ---
 id: fortiswitch-lldp
-title: FortiSwitch — LLDP profiles and voice VLAN
+title: FortiSwitch: LLDP profiles and voice VLAN
 topic: fortiswitch
 kind: config
 order: 64.6
 ---
 
-Run on the FortiGate, not the switch. Starting templates, not verified on every release — option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Run on the FortiGate, not the switch. Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
 
 ### Global LLDP timers
 
@@ -23,7 +23,7 @@ end
 
 ### LLDP-MED profile that hands phones a voice VLAN
 
-The phone learns the voice VLAN, 802.1p priority, and DSCP from the network-policy TLV. The voice VLAN must also be in the port's allowed VLANs — add it with append allowed-vlans, since set replaces the list.
+The phone learns the voice VLAN, 802.1p priority, and DSCP from the network-policy TLV. The voice VLAN must also be in the port's allowed VLANs: add it with append allowed-vlans, since set replaces the list.
 
 ```
 config switch-controller lldp-profile

@@ -38,7 +38,7 @@ export const quickstartTool: Tool = {
   id: 'quickstart',
   title: 'Templates',
   description:
-    'Fill in a site’s details and get the whole build-out config. Fields come from the template itself, so your own template works the same way.',
+    'Fill in a site\u2019s details and get the whole build-out config. Fields come from the template itself, so your own template works the same way.',
   mount(container, param) {
     const saved = loadSavedTemplate();
 
@@ -128,7 +128,7 @@ export const quickstartTool: Tool = {
       document.createTextNode('. Anything under '),
       el('code', undefined, 'private/'),
       document.createTextNode(
-        ' is gitignored and never published — or paste one into any template page to keep it in this browser only.',
+        ' is gitignored and never published, or paste one into any template page to keep it in this browser only.',
       ),
     );
     container.append(note);
@@ -138,7 +138,7 @@ export const quickstartTool: Tool = {
 /** "All templates" link back to the index. */
 function backLink(): HTMLElement {
   const row = el('div', 'btn-row');
-  const link = el('a', 'btn', '← All templates');
+  const link = el('a', 'btn', '\u2190 All templates');
   link.href = '#/quickstart';
   row.append(link);
   return row;

@@ -20,8 +20,8 @@ const PLACEHOLDER = [
 
 /** Matching behavior per pattern type, from the FortiOS admin guide. */
 const PATTERN_HINTS: Record<ContentPatternType, string> = {
-  wildcard: 'forti*.com matches fortinet.com and fortiguard.com — * is any characters',
-  regexp: 'forti*.com matches fortiii.com but not fortinet.com — * repeats the previous character',
+  wildcard: 'forti*.com matches fortinet.com and fortiguard.com: * is any characters',
+  regexp: 'forti*.com matches fortiii.com but not fortinet.com: * repeats the previous character',
 };
 
 /** All options resolved. */
@@ -72,7 +72,7 @@ export const webfilterContentTool: Tool = {
 
     /**
      * Rebuild the options panel. Called by the controls that change which
-     * fields are relevant (format, profile binding) — text and number inputs
+     * fields are relevant (format, profile binding): text and number inputs
      * only regenerate, so they keep focus while typing.
      */
     function renderOptions() {
@@ -194,7 +194,7 @@ export const webfilterContentTool: Tool = {
               renderOptions();
               regenerate();
             },
-            'appends config webfilter profile … set bword-table',
+            'appends config webfilter profile ... set bword-table',
           ),
         );
 
@@ -253,7 +253,7 @@ export const webfilterContentTool: Tool = {
             : `${stats.patternsToBlock} matches block a page`,
         );
       }
-      output.update(script, parts.join(' · '), warnings);
+      output.update(script, parts.join(' \u00b7 '), warnings);
     }
 
     renderOptions();

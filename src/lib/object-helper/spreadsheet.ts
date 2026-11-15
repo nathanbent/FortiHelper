@@ -27,7 +27,7 @@ export interface SpreadsheetMapping {
   commentCol: number | null;
 }
 
-/** Spreadsheet-style column letters: 0 → A, 25 → Z, 26 → AA. */
+/** Spreadsheet-style column letters: 0 -> A, 25 -> Z, 26 -> AA. */
 export function columnLabel(index: number): string {
   let n = index;
   let s = '';
@@ -43,7 +43,7 @@ export function columnLabel(index: number): string {
  * are kept so row numbers in warnings match the pasted sheet; the trailing
  * blank row Excel's final newline creates is dropped.
  *
- * `delimiter` is the single character between cells — a tab for a
+ * `delimiter` is the single character between cells: a tab for a
  * clipboard paste, or `,` / `;` to read a CSV file with the same quoting.
  */
 export function parseSpreadsheet(text: string, delimiter = '\t'): SpreadsheetTable {
@@ -156,7 +156,7 @@ function argmax(scores: number[]): number | null {
  * address value, and the comment. Header keywords win; otherwise the
  * column with the most IP/CIDR/range/FQDN-looking cells is the value,
  * a populated column to its left is the name, and one to its right is
- * the comment — the layout of a typical "Name | Address | Notes" sheet.
+ * the comment: the layout of a typical "Name | Address | Notes" sheet.
  */
 export function detectSpreadsheetMapping(table: SpreadsheetTable): SpreadsheetMapping {
   const { rows, width } = table;
@@ -190,7 +190,7 @@ export function detectSpreadsheetMapping(table: SpreadsheetTable): SpreadsheetMa
     hasHeader && rows.length > 1 ? argmax(scoreData) : argmax(scoreAll);
 
   // No keyword header, but the first row's value cell is the only one that
-  // doesn't parse — a header of labels above a column of addresses.
+  // doesn't parse: a header of labels above a column of addresses.
   if (
     !hasHeader &&
     valueCol !== null &&

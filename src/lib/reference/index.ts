@@ -1,7 +1,7 @@
 /**
  * Reference-tab content.
  *
- * Sheets are markdown files under content/reference/ — see the format in
+ * Sheets are markdown files under content/reference/; see the format in
  * ./markdown.ts and the walkthrough in the README. Adding one means adding a
  * file; nothing here changes.
  *

@@ -1,4 +1,4 @@
-/** Emitters — byte-identical to the Python emit_full_block / emit_delta. */
+/** Emitters: byte-identical to the Python emit_full_block / emit_delta. */
 import { getSetting } from './parser';
 import type { ConfigBlock, Entry, Node, Setting } from './types';
 

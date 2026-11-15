@@ -7,7 +7,7 @@ import { defineConfig } from 'vite';
  * and the Source link in the footer.
  *
  * Publishing this app under a different repo name is therefore a one-line
- * change — see SPLIT.md. Getting the base path wrong serves a blank page with
+ * change; see SPLIT.md. Getting the base path wrong serves a blank page with
  * nothing in the console explaining why, so it is worth not hand-editing.
  */
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));

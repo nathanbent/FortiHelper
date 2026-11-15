@@ -74,7 +74,7 @@ describe('parseSheet commands', () => {
   });
 
   it('accepts bullets and dash variants', () => {
-    const s = parseSheet(sheet('- `a` - one', '* `b` — two', '`c` – three'));
+    const s = parseSheet(sheet('- `a` - one', '* `b` \u2014 two', '`c` \u2013 three'));
     expect(s.entries).toEqual([
       { command: 'a', description: 'one' },
       { command: 'b', description: 'two' },

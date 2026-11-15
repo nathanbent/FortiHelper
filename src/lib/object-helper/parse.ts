@@ -237,7 +237,7 @@ const FORTIOS_UNSAFE_NAME_CHARS = /[()<>'#]/g;
  * Sanitize an object name, mirroring safe_obj_name(): strip double quotes,
  * newlines to spaces, collapse whitespace. Warns (does not fail) when the
  * result exceeds the FortiGate name length limit. With `fortiosSafe` the
- * characters FortiOS rejects in names are dropped too, warning per rename —
+ * characters FortiOS rejects in names are dropped too, warning per rename:
  * an addition over the Python script, gated so it can be switched off.
  * `checkLength` false skips the length warning, for callers that shorten
  * the name afterwards.
@@ -254,7 +254,7 @@ export function safeObjName(
     const cleaned = n.replace(FORTIOS_UNSAFE_NAME_CHARS, '').replace(/\s+/g, ' ').trim();
     if (cleaned !== n) {
       warn(
-        `Warning: renamed '${n}' to '${cleaned}' — FortiOS rejects ( ) < > ' # in object names.`,
+        `Warning: renamed '${n}' to '${cleaned}': FortiOS rejects ( ) < > ' # in object names.`,
       );
       n = cleaned;
     }

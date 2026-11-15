@@ -3,7 +3,7 @@ import { el } from './components';
 
 /**
  * Launcher groups. Each entry points at a tool by id, so the nav order and
- * this page can differ — the home page groups by what you are trying to do,
+ * this page can differ: the home page groups by what you are trying to do,
  * the nav is a flat list.
  */
 const GROUPS: { title: string; blurb: string; tools: { id: string; name: string; what: string }[] }[] = [
@@ -62,7 +62,7 @@ const GROUPS: { title: string; blurb: string; tools: { id: string; name: string;
       {
         id: 'quickstart',
         name: 'Templates',
-        what: 'Fill in a site’s details and get the whole config — use a built-in example or bring your own template.',
+        what: 'Fill in a site\u2019s details and get the whole config: use a built-in example or bring your own template.',
       },
     ],
   },
