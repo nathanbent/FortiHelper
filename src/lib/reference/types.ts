@@ -8,8 +8,11 @@
 
 /** Topic filter options, in dropdown order. */
 export const REFERENCE_TOPICS = [
+  { value: 'traffic', label: 'Traffic and sessions' },
+  { value: 'routing', label: 'Routing and SD-WAN' },
   { value: 'ipsec', label: 'IPsec VPN' },
   { value: 'saml', label: 'SAML / SSO' },
+  { value: 'ha', label: 'High availability' },
   { value: 'fortiswitch', label: 'FortiSwitch' },
   { value: 'webfilter', label: 'Web filter' },
   { value: 'general', label: 'General' },
