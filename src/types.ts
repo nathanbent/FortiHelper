@@ -1,10 +1,18 @@
+import type { PageId } from './lib/help';
+
 /** A tool that can be mounted into the FortiHelper shell. */
 export interface Tool {
-  /** URL-hash id, e.g. "object-helper" -> #/object-helper */
-  id: string;
+  /**
+   * URL-hash id, e.g. "object-helper" -> #/object-helper. Must be listed in
+   * PAGE_IDS, which is what makes the tests ask for its content/help/ file.
+   */
+  id: PageId;
   /** Short name shown in the nav. */
   title: string;
-  /** One-line description shown under the tool heading. */
+  /**
+   * One-line description shown under the tool heading. How the page works
+   * goes in content/help/<id>.md, shown collapsed below this line.
+   */
   description: string;
   /**
    * Render the tool's UI into the given container. Called once per mount.
