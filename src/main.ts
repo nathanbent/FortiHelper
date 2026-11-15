@@ -13,7 +13,8 @@ import { referenceTool } from './ui/reference';
 import { aboutTool } from './ui/about';
 
 // Nav order: home, then the generators in the order you would reach for
-// them, then the editor, then the lookup tab, with templates last.
+// them, then the editor, then the lookup tab, then templates, with the
+// About page last.
 const tools: Tool[] = [
   homeTool,
   objectHelperTool,
@@ -23,11 +24,8 @@ const tools: Tool[] = [
   fortiEditTool,
   referenceTool,
   quickstartTool,
+  aboutTool,
 ];
-
-/** Routable like a tool, but reached from the footer rather than the nav. */
-const pages: Tool[] = [aboutTool];
-const routes: Tool[] = [...tools, ...pages];
 
 const app = document.getElementById('app')!;
 
@@ -52,8 +50,8 @@ footer.innerHTML =
 app.append(header, main, footer);
 
 // A hairline after these tabs splits the bar into:
-// home | build | work with | templates.
-const NAV_BREAKS = new Set(['home', 'onboarding', 'reference']);
+// home | build | work with | templates | about.
+const NAV_BREAKS = new Set(['home', 'onboarding', 'reference', 'quickstart']);
 
 const links = new Map<string, HTMLAnchorElement>();
 for (const tool of tools) {
@@ -70,12 +68,12 @@ function currentRoute(): { id: string; param?: string } {
   const slash = path.indexOf('/');
   const id = slash === -1 ? path : path.slice(0, slash);
   const param = slash === -1 ? undefined : path.slice(slash + 1);
-  return routes.some((t) => t.id === id) ? { id, param } : { id: tools[0].id };
+  return tools.some((t) => t.id === id) ? { id, param } : { id: tools[0].id };
 }
 
 function render() {
   const { id, param } = currentRoute();
-  const tool = routes.find((t) => t.id === id)!;
+  const tool = tools.find((t) => t.id === id)!;
   for (const [tid, a] of links) a.classList.toggle('active', tid === id);
   main.replaceChildren();
   const heading = el('div');
