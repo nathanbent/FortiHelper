@@ -1013,3 +1013,5 @@ mark.ref-filled.ref-hit { padding: 0 0.15em; }
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+.ref-json { font-size: 0.75rem; color: var(--secondary); }

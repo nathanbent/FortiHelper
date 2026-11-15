@@ -1,5 +1,6 @@
-import { readFileSync } from 'node:fs';
-import { defineConfig } from 'vite';
+import { readFileSync, readdirSync } from 'node:fs';
+import { defineConfig, type Plugin } from 'vite';
+import { buildReferenceExport, buildTemplatesExport } from './src/lib/export';
 
 /**
  * The repo name is written down once, in package.json's `repository` field,
@@ -14,7 +15,54 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 const repoUrl: string = pkg.repository.url.replace(/\.git$/, '');
 const repoName = repoUrl.split('/').pop();
 
+/** Markdown files directly inside a content directory, keyed by filename. */
+function readMarkdown(dir: string): Record<string, string> {
+  const root = new URL(`./content/${dir}/`, import.meta.url);
+  // Not recursive on purpose: content/quickstart/private/ must never be read.
+  return Object.fromEntries(
+    readdirSync(root, { withFileTypes: true })
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+      .map((entry) => [entry.name, readFileSync(new URL(entry.name, root), 'utf-8')]),
+  );
+}
+
+/** The JSON files published next to the site; see src/lib/export.ts. */
+function contentFiles(): Record<string, string> {
+  const catalogue = readFileSync(new URL('./content/reference-variables.md', import.meta.url), 'utf-8');
+  const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
+  return {
+    'reference.json': json(buildReferenceExport(readMarkdown('reference'), catalogue)),
+    'templates.json': json(buildTemplatesExport(readMarkdown('quickstart'))),
+  };
+}
+
+/**
+ * Writes reference.json and templates.json into the build, and serves them
+ * from the dev server at the same paths, so other projects can reuse the
+ * content without this app's markdown parsers.
+ */
+function contentExport(): Plugin {
+  return {
+    name: 'fortihelper-content-export',
+    generateBundle() {
+      for (const [fileName, source] of Object.entries(contentFiles())) {
+        this.emitFile({ type: 'asset', fileName, source });
+      }
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const name = (req.url ?? '').split('?')[0].replace(server.config.base, '');
+        if (name !== 'reference.json' && name !== 'templates.json') return next();
+        // Rebuilt per request, so an edited sheet shows up on reload.
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        res.end(contentFiles()[name]);
+      });
+    },
+  };
+}
+
 export default defineConfig({
+  plugins: [contentExport()],
   // Served from https://<user>.github.io/<repo>/
   base: `/${repoName}/`,
   define: {

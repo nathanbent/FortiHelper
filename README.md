@@ -211,7 +211,7 @@ topic: ipsec              # a value from REFERENCE_TOPICS
 kind: diagnostics         # a value from REFERENCE_KINDS
 copyAll: true             # optional: adds a "Copy all" button
 order: 10                 # optional: lower sorts first, default 100
-runOn: fortigate          # optional: fortigate | fortiswitch, shown as a badge
+runOn: fortigate          # optional: fortigate | fortiswitch | fortiap, shown as a badge
 since: 6.4                # optional: first FortiOS release the sheet applies to
 until: 7.6                # optional: first release it no longer applies to
 ---
@@ -263,6 +263,43 @@ end
 Markdown is inlined at build time, so the deployed page fetches nothing.
 A malformed sheet fails the build and the tests with the filename and the
 reason, rather than disappearing silently.
+
+### Starting a new sheet or template
+
+```bash
+npm run new-sheet sslvpn-debug ipsec diagnostics
+```
+
+```bash
+npm run new-template branch-vpn vpn
+```
+
+`new-sheet <id> [topic] [kind]` writes `content/reference/<id>.md` with the
+front matter filled in, the next free `order` in that topic, and the format
+written out as comments. Topic defaults to `general` and kind to
+`diagnostics`. `new-template <id> [category]` does the same for
+`content/quickstart/<id>.md`. Both files are valid as written, so the build
+keeps passing while you edit, and both refuse to overwrite an existing file.
+
+### Using the content elsewhere
+
+The build also writes the content as plain JSON next to the site, so other
+projects can use it without this app's markdown parsers:
+
+| File | Holds |
+|---|---|
+| `reference.json` | every sheet (commands, notes, snippets, version limits, placeholders), the topic and kind lists, and the shared variable catalogue |
+| `templates.json` | every committed quickstart template: title, category, variables, and the config body |
+
+They are served from the site root, for example
+`https://<user>.github.io/<repo>/reference.json`, and GitHub Pages allows
+cross-origin requests, so a script or another web app can fetch them
+directly. `npm run dev` serves them at the same paths, and the Reference tab
+links to `reference.json`. Each file carries `format` and `version`; the
+version only changes when a field is renamed or removed, so ignore keys you
+do not recognise. Templates under `content/quickstart/private/` are never
+exported. The shapes are defined in
+[`src/lib/export.ts`](src/lib/export.ts).
 
 ### Quickstart templates
 
