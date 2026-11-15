@@ -15,7 +15,7 @@ Starting templates, not verified on every release: check with ? in the CLI befor
 
 ### Rename a switch's ID from its serial number (FortiOS 7.4+)
 
-The switch must already be listed on the FortiGate. Use letters, digits, hyphens, and underscores only: 16 characters at most on early 7.4 builds, 35 later. Other commands, groups, and logs use the new ID from then on, so rename before building anything that refers to the switch. On a downgrade below 7.4 the ID goes back to the serial number.
+The switch must already be listed on the FortiGate: if the serial is not there, the rename fails, and a later edit of the new name creates an empty entry with no serial behind it. Use letters, digits, hyphens, and underscores only: 16 characters at most on early 7.4 builds, 35 later. Other commands, groups, and logs use the new ID from then on, so rename before building anything that refers to the switch. On a downgrade below 7.4 the ID goes back to the serial number.
 
 ```
 config switch-controller managed-switch
@@ -23,14 +23,23 @@ config switch-controller managed-switch
 end
 ```
 
-### Give a switch a display name and description (any release)
+### Give a switch a display name (FortiOS 7.2 and earlier)
 
-Leaves the ID as the serial number. The name shows in the GUI; other commands still need the ID.
+set name was removed in FortiOS 7.4.0, where the ID itself is the name: rename the switch instead. On 7.2 and earlier this leaves the ID as the serial number; the name shows in the GUI and other commands still need the ID.
+
+```
+config switch-controller managed-switch
+    edit "<FortiSwitch_serial_number>"
+        set name "<switch-name>"
+    next
+end
+```
+
+### Describe a switch (any release)
 
 ```
 config switch-controller managed-switch
     edit "<switch-id>"
-        set name "<switch-name>"
         set description "<switch-description>"
     next
 end
