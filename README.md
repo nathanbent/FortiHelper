@@ -111,6 +111,16 @@ carries the same split as hairline-separated groups.
   saying what its output should show. Fields are labelled, given an example
   and lightly checked from a shared catalogue: an IP field warns about
   something that is not an IP, but the value is still filled in.
+  Sheets and commands can carry badges for where they are run and which
+  FortiOS releases they apply to; enter your **FortiOS version** to hide
+  what does not apply (a partial version such as `7.4` only hides what no
+  7.4.x release has). The star on a sheet pins it to a **Favourites** group
+  at the top, and a **Recent** row links back to the last few sheets opened.
+  Both, and the version, are remembered in the browser's `localStorage`:
+  sheet ids and a version number only, never the values typed into fields.
+  Keyboard: `/` jumps to search, the up and down arrows move through sheets
+  and the rows of open ones, left and right close and open a sheet, Enter
+  opens a sheet or copies the focused command, and Esc clears the search.
   See
   [Adding reference content](#adding-reference-content).
 - **Templates**: fill in a site's details and get the whole build-out config.
@@ -201,6 +211,9 @@ topic: ipsec              # a value from REFERENCE_TOPICS
 kind: diagnostics         # a value from REFERENCE_KINDS
 copyAll: true             # optional: adds a "Copy all" button
 order: 10                 # optional: lower sorts first, default 100
+runOn: fortigate          # optional: fortigate | fortiswitch, shown as a badge
+since: 6.4                # optional: first FortiOS release the sheet applies to
+until: 7.6                # optional: first release it no longer applies to
 ---
 
 Prose before the first command becomes the note under the title.
@@ -234,6 +247,10 @@ end
 - a line starting with `>` straight after a command is shown under it as
   **Look for**: what its output should say, or what to do next
 - with `copyAll: true` the commands are a sequence and are numbered as steps
+- a description ending in `[7.4+]` marks a command as needing that release
+  or later, and `[<7.4]` as only existing before it; the tag becomes a badge
+  and feeds the FortiOS version filter, as do `since` and `until` in the
+  front matter for a whole sheet
 - every `<placeholder>` in a command or config block becomes a field. Its
   label, example and type come from
   [`content/reference-variables.md`](content/reference-variables.md), one

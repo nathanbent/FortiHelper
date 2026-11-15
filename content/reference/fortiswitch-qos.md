@@ -4,9 +4,10 @@ title: FortiSwitch: QoS
 topic: fortiswitch
 kind: config
 order: 64.4
+runOn: fortigate
 ---
 
-Run on the FortiGate, not the switch. Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
 
 ### Map 802.1p (CoS) values to egress queues
 

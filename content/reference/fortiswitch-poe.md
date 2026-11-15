@@ -4,13 +4,14 @@ title: FortiSwitch: PoE
 topic: fortiswitch
 kind: config
 order: 64.8
+runOn: fortigate
 ---
 
-Run on the FortiGate, not the switch. Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
+Starting templates, not verified on every release: option names shift between FortiOS versions, so check with ? in the CLI before pasting. Replace every <placeholder>.
 
-`execute switch-controller switch-action poe reset <FortiSwitch_serial_number> <port>` - Power-cycle a PoE port (FortiOS 7.4 and later)
+`execute switch-controller switch-action poe reset <FortiSwitch_serial_number> <port>` - Power-cycle a PoE port [7.4+]
 
-`execute switch-controller poe-reset <FortiSwitch_serial_number> <port>` - Power-cycle a PoE port (older FortiOS)
+`execute switch-controller poe-reset <FortiSwitch_serial_number> <port>` - Power-cycle a PoE port [<7.4]
 
 `get switch-controller poe <FortiSwitch_serial_number> <port>` - PoE status and power draw of a port
 

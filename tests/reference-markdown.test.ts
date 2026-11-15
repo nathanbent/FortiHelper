@@ -219,3 +219,32 @@ describe('parseSheet output notes and variables', () => {
     expect(() => parseSheet(sheet('`a <x>`', '## Variables', '- <x> - X', '- <x> - Y'))).toThrow(/listed twice/);
   });
 });
+
+describe('parseSheet versions and runOn', () => {
+  const front = (...extra: string[]) =>
+    ['---', 'id: d', 'title: T', 'topic: ipsec', 'kind: diagnostics', ...extra, '---', ''].join('\n');
+
+  it('reads runOn, since and until from the front matter', () => {
+    const s = parseSheet(front('runOn: fortigate', 'since: 6.4', 'until: 7.6') + '`a`');
+    expect(s).toMatchObject({ runOn: 'fortigate', since: '6.4', until: '7.6' });
+  });
+
+  it('rejects an unknown runOn or a since that is not a version', () => {
+    expect(() => parseSheet(front('runOn: laptop') + '`a`')).toThrow(/unknown runOn/);
+    expect(() => parseSheet(front('since: soon') + '`a`')).toThrow(/not a version/);
+  });
+
+  it('lifts a trailing version tag off a description', () => {
+    const s = parseSheet(sheet('`new` - Does it [7.4.4+]', '`old` - Does it [<7.4.4]', '`tagonly` - [7.2+]'));
+    expect(s.entries).toEqual([
+      { command: 'new', description: 'Does it', since: '7.4.4' },
+      { command: 'old', description: 'Does it', until: '7.4.4' },
+      { command: 'tagonly', since: '7.2' },
+    ]);
+  });
+
+  it('leaves ordinary brackets in a description alone', () => {
+    const s = parseSheet(sheet('`a` - See note [7.4]', '`b` - Uses tcp[13]'));
+    expect(s.entries?.map((e) => e.description)).toEqual(['See note [7.4]', 'Uses tcp[13]']);
+  });
+});

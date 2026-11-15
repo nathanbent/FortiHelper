@@ -4,6 +4,7 @@ title: FortiSwitch diagnostics
 topic: fortiswitch
 kind: diagnostics
 order: 60
+runOn: fortigate
 ---
 
 `diag switch-controller mac-cache show` - Shows the MAC addresses on connected FortiSwitches

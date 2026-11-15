@@ -14,6 +14,7 @@ import { loadSharedVariables, loadSheets } from './markdown';
 export * from './types';
 export { parseSheet } from './markdown';
 export * from './variables';
+export * from './versions';
 
 /** All reference sections, in display order. */
 export const referenceSections: ReferenceSection[] = loadSheets();

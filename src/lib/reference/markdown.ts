@@ -1,6 +1,8 @@
 import {
   REFERENCE_TOPICS,
   REFERENCE_KINDS,
+  RUN_ON,
+  type RunOn,
   type ReferenceEntry,
   type ReferenceKind,
   type ReferenceSection,
@@ -9,6 +11,7 @@ import {
   type ReferenceTopic,
 } from './types';
 import { parseVariableCatalog, parseVariableLine } from './variables';
+import { parseVersion } from './versions';
 
 /**
  * Reference sheets are markdown files under content/reference/.
@@ -20,6 +23,9 @@ import { parseVariableCatalog, parseVariableLine } from './variables';
  *     kind: diagnostics
  *     copyAll: true          # optional
  *     order: 10              # optional, lower sorts first
+ *     runOn: fortigate       # optional: fortigate | fortiswitch, shown as a badge
+ *     since: 6.4             # optional: first FortiOS release the sheet applies to
+ *     until: 7.6             # optional: first release it no longer applies to
  *     ---
  *
  *     Any prose before the first command becomes the section note; prose
@@ -27,6 +33,8 @@ import { parseVariableCatalog, parseVariableLine } from './variables';
  *
  *     `get vpn ipsec tunnel summary` - One line per tunnel
  *     > A line starting with > says what to look for in that command's output
+ *     `diagnose sys sdwan service4` - A description may end in a version tag [7.4.4+]
+ *     `diagnose sys sdwan service` - [<7.4.4] means "before 7.4.4"
  *     - `diagnose vpn tunnel list` - Bullets work too
  *
  *     ## Variables
@@ -49,6 +57,23 @@ const COMMAND_RE = /^(?:[-*]\s*)?`([^`]+)`(?:\s*[-\u2013\u2014]\s*(.*))?$/;
 /** A colour row inside a ```colors block: `12 - Brown`. */
 const COLOR_RE = /^(\d+)\s*[-\u2013\u2014]\s*(.+)$/;
 
+/** A version tag closing a description: `[7.4+]` (since) or `[<7.4]` (until). */
+const VERSION_TAG_RE = /\s*\[(<)?\s*(\d+(?:\.\d+){0,2})(\+)?\]\s*$/;
+
+/** Split a trailing version tag off a command's description. */
+function splitVersionTag(description: string): {
+  description: string;
+  since?: string;
+  until?: string;
+} {
+  const match = VERSION_TAG_RE.exec(description);
+  // `[7.4]` with neither `<` nor `+` is ordinary bracketed text, not a tag.
+  if (!match || Boolean(match[1]) === Boolean(match[3])) return { description };
+  const rest = description.slice(0, match.index).trim();
+  return match[1] ? { description: rest, until: match[2] } : { description: rest, since: match[2] };
+}
+
+const RUN_ON_VALUES = new Set<string>(RUN_ON.map((r) => r.value));
 const TOPIC_VALUES = new Set<string>(REFERENCE_TOPICS.map((t) => t.value));
 const KIND_VALUES = new Set<string>(REFERENCE_KINDS.map((k) => k.value));
 
@@ -104,6 +129,10 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
   const kind = requireMeta(meta, 'kind');
   if (!TOPIC_VALUES.has(topic)) fail(`unknown topic "${topic}"`);
   if (!KIND_VALUES.has(kind)) fail(`unknown kind "${kind}"`);
+  if (meta.runOn && !RUN_ON_VALUES.has(meta.runOn)) fail(`unknown runOn "${meta.runOn}"`);
+  for (const key of ['since', 'until'] as const) {
+    if (meta[key] && !parseVersion(meta[key])) fail(`${key} "${meta[key]}" is not a version`);
+  }
 
   const entries: ReferenceEntry[] = [];
   const snippets: ReferenceSnippet[] = [];
@@ -199,9 +228,12 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
 
     const command = COMMAND_RE.exec(trimmed);
     if (command) {
+      const tagged = splitVersionTag(command[2]?.trim() ?? '');
       entries.push({
         command: command[1].trim(),
-        ...(command[2]?.trim() ? { description: command[2].trim() } : {}),
+        ...(tagged.description ? { description: tagged.description } : {}),
+        ...(tagged.since ? { since: tagged.since } : {}),
+        ...(tagged.until ? { until: tagged.until } : {}),
       });
       sawContent = true;
       continue;
@@ -235,6 +267,9 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
     ...(entries.length ? { entries } : {}),
     ...(snippets.length ? { snippets } : {}),
     ...(variables.length ? { variables } : {}),
+    ...(meta.runOn ? { runOn: meta.runOn as RunOn } : {}),
+    ...(meta.since ? { since: meta.since } : {}),
+    ...(meta.until ? { until: meta.until } : {}),
     ...(meta.copyAll === 'true' ? { copyAll: true } : {}),
     order,
   };
