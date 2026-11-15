@@ -1,5 +1,5 @@
 /* =============================================================
-   Brand tokens v1.0.0 - 2026-11-08
+   Brand tokens v1.1.0 - 2026-11-15
    Copied in unchanged. Do not edit values here: update the copy
    as a whole when the tokens change, and keep the version above.
 
@@ -16,6 +16,7 @@
 :root {
     --accent: #1B5A7A;
     --accent-2: #235B41;
+    --on-accent: #FFFFFF;       /* text on an --accent fill */
 
     --theme: #E9EFF3;
     --entry: #FFFFFF;
@@ -25,11 +26,13 @@
     --content: #232E3A;
     --border: #D9E2EA;
     --code-block-bg: #1B222B;
+    --code-block-text: #D8DFE6; /* same in both modes: the block is always dark */
     --code-bg: #F1F5F8;
 
     --status-info: #1B5A7A;
     --status-ok: #14685E;       /* TIP teal (text stop) */
     --status-warn: #8A6600;       /* darker than the site callout #9C7400, which fails AA */
+    --status-warn-border: #D1A017;
     --status-error: #C23730;
     --status-important: #7B54C8;
 
@@ -46,6 +49,7 @@
     :root:not([data-theme="light"]) {
         --accent: #7FB3D6;
         --accent-2: #7FBFA0;
+        --on-accent: #12161B;
 
         --theme: #12161B;
         --entry: #242D38;
@@ -55,11 +59,13 @@
         --content: #C4CDD6;
         --border: #333F4C;
         --code-block-bg: #242D38;
+        --code-block-text: #D8DFE6;
         --code-bg: #2F3A47;
 
         --status-info: #7FB3D6;
         --status-ok: #9BDCD2;
         --status-warn: #E3B341;
+        --status-warn-border: #E3B341;
         --status-error: #F0857D;
         --status-important: #B294E8;
     }
@@ -69,6 +75,7 @@
 .dark {
     --accent: #7FB3D6;
     --accent-2: #7FBFA0;
+    --on-accent: #12161B;
 
     --theme: #12161B;
     --entry: #242D38;
@@ -78,11 +85,13 @@
     --content: #C4CDD6;
     --border: #333F4C;
     --code-block-bg: #242D38;
+    --code-block-text: #D8DFE6;
     --code-bg: #2F3A47;
 
     --status-info: #7FB3D6;
     --status-ok: #9BDCD2;
     --status-warn: #E3B341;
+    --status-warn-border: #E3B341;
     --status-error: #F0857D;
     --status-important: #B294E8;
 }
