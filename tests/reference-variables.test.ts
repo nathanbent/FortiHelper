@@ -86,7 +86,7 @@ describe('reference variables', () => {
 
   it('treats only real secrets in the bundled sheets as secret', () => {
     const secrets = new Set(referenceSections.flatMap(sectionPlaceholders).filter(isSecretPlaceholder));
-    expect([...secrets].sort()).toEqual(['<pre-shared-key>', '<wifi-passphrase>']);
+    expect([...secrets].sort()).toEqual(['<password>', '<pre-shared-key>', '<wifi-passphrase>']);
   });
 });
 

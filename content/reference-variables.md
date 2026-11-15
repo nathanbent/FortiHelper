@@ -20,6 +20,8 @@ list. Keep examples generic: private or documentation addresses only.
 - <fortigate-ip> (ip) - FortiGate IP - e.g. 10.1.1.1
 - <fortilink-ip> (ip) - FortiLink interface IP - e.g. 10.255.1.1
 - <fortilink-mask> (mask) - FortiLink netmask - e.g. 255.255.255.0
+- <client-public-ip> (ip) - Client public IP - e.g. 198.51.100.25
+- <endpoint-ip> (ip) - Endpoint IP - e.g. 10.1.2.3
 - <tftp-ip> (ip) - TFTP server IP - e.g. 10.1.1.50
 - <vlan-ip> (ip) - VLAN interface IP - e.g. 10.1.20.1
 - <vlan-mask> (mask) - VLAN netmask - e.g. 255.255.255.0
@@ -54,6 +56,8 @@ list. Keep examples generic: private or documentation addresses only.
 
 - <switch-id> - Switch ID - e.g. S108EN5918000000
 - <FortiSwitch_serial_number> - FortiSwitch serial - e.g. S108EN5918000000
+- <switch-name> - Switch name - e.g. IDF2-SW01
+- <switch-description> - Switch description - e.g. Second floor, rack B
 - <port> - Switch port - e.g. port7
 - <uplink-port> - Uplink port - e.g. port23
 - <icl-port> - ICL port - e.g. port24
@@ -71,6 +75,8 @@ list. Keep examples generic: private or documentation addresses only.
 
 - <ap-serial> - FortiAP serial - e.g. FP231FTF20000000
 - <client-mac> - Client MAC address - e.g. 00:11:22:33:44:55
+- <ap-name> - AP name - e.g. Floor2-East
+- <ap-location> - AP location - e.g. Second floor, east corridor
 - <ap-model> - FortiAP model - e.g. 231F
 - <ap-profile-name> - FortiAP profile name - e.g. office-231F
 - <ap-group-name> - AP group name - e.g. floor-2
@@ -92,3 +98,14 @@ list. Keep examples generic: private or documentation addresses only.
 - <member-index> (number) - Cluster member index - e.g. 1
 - <cluster-id> (number) - Cluster ID - e.g. 1
 - <admin-username> - Admin username - e.g. admin
+
+## Authentication and system
+
+- <server-name> - Server object name on the FortiGate - e.g. dc01-ldap
+- <username> - Username to test - e.g. jsmith
+- <password> - Password to test
+- <ems-name> - EMS connector name - e.g. ems-01
+- <tunnel-index> (number) - Session index from the list - e.g. 0
+- <admin-index> (number) - Admin session index from the list - e.g. 1
+- <process-id> (number) - Process ID - e.g. 1234
+- <config-file> - Backup filename - e.g. fgt-backup.conf

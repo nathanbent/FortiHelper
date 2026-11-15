@@ -9,6 +9,8 @@ this file, so keep the shape: a `## YYYY-MM-DD` heading per day, then one
 - About page with version and build info, this changelog, and a footer link to it.
 - Reference: FortiLink bring-up, switch port, and FortiAP sheets, plus table blocks for port, PoE, and Wi-Fi channel lookups.
 - Reference: traffic, routing, SD-WAN, and HA sheets.
+- Reference: authentication, SSL VPN, ZTNA, and system sheets, plus a FortiSwitch and FortiAP names and IDs sheet.
+- Onboarding: compares your list against the FortiGate's current config, and switch naming follows the FortiOS version, renaming by default on 7.4 and later.
 - Reference: fill-in variable fields with a shared variables bar, so a value typed once lands in every command that uses it.
 - Reference: search highlighting, numbered steps, version and run-on badges, favourites, recents, keyboard navigation, topic grouping, and deep links to a sheet.
 - Reference sheets and templates are published as JSON next to the site for reuse elsewhere.
