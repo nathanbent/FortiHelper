@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import { buildReferenceExport, buildTemplatesExport } from './src/lib/export';
@@ -14,6 +15,20 @@ import { buildReferenceExport, buildTemplatesExport } from './src/lib/export';
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8'));
 const repoUrl: string = pkg.repository.url.replace(/\.git$/, '');
 const repoName = repoUrl.split('/').pop();
+
+/**
+ * Build details for the About page, read from git. Both come back empty when
+ * there is no checkout to ask (a source tarball), and the page leaves the rows
+ * out. The commit date is used rather than the wall clock so the same commit
+ * always builds the same page.
+ */
+function git(...args: string[]): string {
+  try {
+    return execFileSync('git', args, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch {
+    return '';
+  }
+}
 
 /** Markdown files directly inside a content directory, keyed by filename. */
 function readMarkdown(dir: string): Record<string, string> {
@@ -67,5 +82,8 @@ export default defineConfig({
   base: `/${repoName}/`,
   define: {
     __REPO_URL__: JSON.stringify(repoUrl),
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __BUILD_COMMIT__: JSON.stringify(git('rev-parse', 'HEAD')),
+    __BUILD_DATE__: JSON.stringify(git('log', '-1', '--format=%cs')),
   },
 });

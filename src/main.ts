@@ -10,6 +10,7 @@ import { webfilterContentTool } from './ui/webfilter-content';
 import { fortiEditTool } from './ui/forti-edit';
 import { deviceOnboardingTool } from './ui/device-onboarding';
 import { referenceTool } from './ui/reference';
+import { aboutTool } from './ui/about';
 
 // Nav order: home, then the generators in the order you would reach for
 // them, then the editor, then the lookup tab, with templates last.
@@ -23,6 +24,10 @@ const tools: Tool[] = [
   referenceTool,
   quickstartTool,
 ];
+
+/** Routable like a tool, but reached from the footer rather than the nav. */
+const pages: Tool[] = [aboutTool];
+const routes: Tool[] = [...tools, ...pages];
 
 const app = document.getElementById('app')!;
 
@@ -40,7 +45,8 @@ const main = el('main', 'tool-main');
 const footer = el('footer', 'shell-footer');
 footer.innerHTML =
   'Runs entirely in your browser: nothing you paste leaves this page ' +
-  '(except optional DNS lookups via DNS-over-HTTPS). ' +
+  '(except optional DNS lookups via DNS-over-HTTPS).<br>' +
+  `FortiHelper v${__APP_VERSION__} \u00B7 <a href="#/${aboutTool.id}">About</a> \u00B7 ` +
   `<a href="${__REPO_URL__}" target="_blank" rel="noopener">Source</a>`;
 
 app.append(header, main, footer);
@@ -64,12 +70,12 @@ function currentRoute(): { id: string; param?: string } {
   const slash = path.indexOf('/');
   const id = slash === -1 ? path : path.slice(0, slash);
   const param = slash === -1 ? undefined : path.slice(slash + 1);
-  return tools.some((t) => t.id === id) ? { id, param } : { id: tools[0].id };
+  return routes.some((t) => t.id === id) ? { id, param } : { id: tools[0].id };
 }
 
 function render() {
   const { id, param } = currentRoute();
-  const tool = tools.find((t) => t.id === id)!;
+  const tool = routes.find((t) => t.id === id)!;
   for (const [tid, a] of links) a.classList.toggle('active', tid === id);
   main.replaceChildren();
   const heading = el('div');
