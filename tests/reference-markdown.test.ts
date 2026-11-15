@@ -180,3 +180,42 @@ describe('parseSheet description', () => {
     );
   });
 });
+
+describe('parseSheet output notes and variables', () => {
+  it('attaches > lines to the command above them', () => {
+    const s = parseSheet(sheet('`a` - first', '> look for X', '> and Y', '`b`'));
+    expect(s.entries).toEqual([
+      { command: 'a', description: 'first', expect: 'look for X and Y' },
+      { command: 'b' },
+    ]);
+  });
+
+  it('rejects a > line with no command above it', () => {
+    expect(() => parseSheet(sheet('> orphan', '`a`'))).toThrow(/does not follow a command/);
+  });
+
+  it('reads a Variables list without treating it as content or a block title', () => {
+    const s = parseSheet(
+      sheet(
+        '`ping <host-ip>`',
+        '',
+        '## Variables',
+        '- <host-ip> (ip) - Host - e.g. 10.1.2.3',
+        '',
+        '```',
+        'line one <host-ip>',
+        'line two',
+        '```',
+      ),
+    );
+    expect(s.variables).toEqual([{ name: '<host-ip>', label: 'Host', example: '10.1.2.3', type: 'ip' }]);
+    expect(s.entries).toHaveLength(1);
+    expect(s.snippets?.[0].title).toBe('Demo sheet');
+  });
+
+  it('rejects a malformed or repeated Variables line', () => {
+    expect(() => parseSheet(sheet('`a`', '## Variables', 'not a variable'))).toThrow(/Variables line/);
+    expect(() => parseSheet(sheet('`a <x>`', '## Variables', '- <x> (nope) - X'))).toThrow(/unknown type/);
+    expect(() => parseSheet(sheet('`a <x>`', '## Variables', '- <x> - X', '- <x> - Y'))).toThrow(/listed twice/);
+  });
+});

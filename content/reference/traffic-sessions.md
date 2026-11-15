@@ -15,5 +15,6 @@ Draft, not verified on every release. Set a session filter before listing or cle
 `diagnose sys session filter dport <dest-port>` - Match sessions to this destination port
 `diagnose sys session filter` - Show the filter currently in effect
 `diagnose sys session list` - Sessions matching the filter, with policy id, NAT, and offload state
+> policy_id is the policy that allowed the session. A line beginning npu info means it is offloaded, so the sniffer will not show its packets.
 `diagnose sys session clear` - Delete the sessions matching the filter. Check the filter first
 `diagnose firewall iprope lookup <source-ip> <source-port> <dest-ip> <dest-port> <protocol> <source-interface>` - Which policy this traffic would match; protocol is tcp, udp, or a number. Unreliable for policies that require authentication

@@ -4,9 +4,11 @@ import {
   type ReferenceEntry,
   type ReferenceKind,
   type ReferenceSection,
+  type ReferenceVariable,
   type ReferenceSnippet,
   type ReferenceTopic,
 } from './types';
+import { parseVariableCatalog, parseVariableLine } from './variables';
 
 /**
  * Reference sheets are markdown files under content/reference/.
@@ -24,7 +26,15 @@ import {
  *     between a `###` heading and its fenced block describes that block.
  *
  *     `get vpn ipsec tunnel summary` - One line per tunnel
+ *     > A line starting with > says what to look for in that command's output
  *     - `diagnose vpn tunnel list` - Bullets work too
+ *
+ *     ## Variables
+ *     - <peer-ip> (ip) - Remote gateway - e.g. 203.0.113.10
+ *
+ * A `## Variables` list labels the sheet's placeholder fields; the `(type)`
+ * and the `e.g.` are optional. Placeholders it leaves out fall back to the
+ * shared catalogue in content/reference-variables.md.
  *
  * Fenced blocks are copied whole as config snippets, titled by the `###`
  * heading above them. Two info strings change that:
@@ -97,6 +107,9 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
 
   const entries: ReferenceEntry[] = [];
   const snippets: ReferenceSnippet[] = [];
+  const variables: ReferenceVariable[] = [];
+  /** True while inside the `## Variables` list. */
+  let inVariables = false;
   const intro: string[] = [];
   /** The most recent `###` heading, used to title the next fenced block. */
   let lastHeading = '';
@@ -110,6 +123,7 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
     const trimmed = line.trim();
 
     if (trimmed.startsWith('```')) {
+      inVariables = false;
       const info = trimmed.slice(3).trim().toLowerCase();
       const block: string[] = [];
       let closed = false;
@@ -152,8 +166,34 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
     }
 
     if (/^#{1,6}\s/.test(trimmed)) {
-      lastHeading = trimmed.replace(/^#{1,6}\s+/, '').trim();
+      const heading = trimmed.replace(/^#{1,6}\s+/, '').trim();
+      // "Variables" introduces the field list; it never titles a config block.
+      inVariables = /^variables$/i.test(heading);
+      lastHeading = inVariables ? '' : heading;
       headingProse = [];
+      continue;
+    }
+
+    if (inVariables) {
+      if (!trimmed) continue;
+      let variable: ReferenceVariable | null = null;
+      try {
+        variable = parseVariableLine(trimmed);
+      } catch (error) {
+        fail((error as Error).message);
+      }
+      if (!variable) fail(`Variables line is not "- <name> - label - e.g. example": ${trimmed}`);
+      if (variables.some((v) => v.name === variable!.name)) fail(`${variable!.name} is listed twice`);
+      variables.push(variable!);
+      continue;
+    }
+
+    // `> text` under a command: what to look for in its output.
+    if (trimmed.startsWith('>')) {
+      const note = trimmed.replace(/^>\s*/, '');
+      const last = entries[entries.length - 1];
+      if (!last || last.command === undefined) fail(`"> ${note}" does not follow a command`);
+      if (note) last.expect = last.expect ? `${last.expect} ${note}` : note;
       continue;
     }
 
@@ -194,6 +234,7 @@ export function parseSheet(markdown: string, filename = 'sheet'): ParsedSheet {
       : {}),
     ...(entries.length ? { entries } : {}),
     ...(snippets.length ? { snippets } : {}),
+    ...(variables.length ? { variables } : {}),
     ...(meta.copyAll === 'true' ? { copyAll: true } : {}),
     order,
   };
@@ -217,4 +258,26 @@ export function loadSheets(): ParsedSheet[] {
   );
 
   return sheets.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+}
+
+/**
+ * The shared variable catalogue, content/reference-variables.md: labels,
+ * examples and types for placeholders that many sheets use.
+ */
+export function loadSharedVariables(): Map<string, ReferenceVariable> {
+  const files = import.meta.glob('../../../content/reference-variables.md', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+
+  const shared = new Map<string, ReferenceVariable>();
+  for (const [path, markdown] of Object.entries(files)) {
+    try {
+      for (const variable of parseVariableCatalog(markdown)) shared.set(variable.name, variable);
+    } catch (error) {
+      throw new SheetError(`${path.split('/').pop()}: ${(error as Error).message}`);
+    }
+  }
+  return shared;
 }

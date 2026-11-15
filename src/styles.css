@@ -894,3 +894,49 @@ mark.ref-filled {
 
 /* Buttons in a sheet's header sit together at the right, however many there are. */
 .ref-summary-head .ref-heading { margin-right: auto; }
+
+/* --- Reference: search hits, sequence steps, output notes, field warnings --- */
+mark.ref-hit {
+  background: color-mix(in srgb, #f5c400 55%, transparent);
+  color: inherit;
+  border-radius: 2px;
+}
+
+/* A hit inside a filled-in value keeps the hit colour. */
+mark.ref-filled.ref-hit { padding: 0 0.15em; }
+
+/* Only rows with an output note wrap, so the note gets its own line. */
+.ref-entry-noted { flex-wrap: wrap; }
+
+/* Commands are copied character for character: show != as typed, not as a ligature. */
+.ref-entry code,
+.ref-snippet pre.output,
+.ref-tray-list { font-variant-ligatures: none; }
+
+.ref-step {
+  flex-shrink: 0;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--theme);
+  color: var(--secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.ref-expect {
+  flex-basis: 100%;
+  font-size: 0.82rem;
+  color: var(--secondary);
+  border-left: 2px solid var(--accent);
+  padding-left: 0.6rem;
+}
+
+.ref-expect strong { color: var(--content); font-weight: 600; }
+
+.ref-var-warn { color: #b45309; font-size: 0.75rem; }
+
+.ref-var input[aria-invalid='true'] { border-color: #b45309; }

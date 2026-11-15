@@ -8,8 +8,8 @@
  * `tests/reference.test.ts` guards the shape of everything here.
  */
 
-import type { ReferenceSection } from './types';
-import { loadSheets } from './markdown';
+import type { ReferenceSection, ReferenceVariable } from './types';
+import { loadSharedVariables, loadSheets } from './markdown';
 
 export * from './types';
 export { parseSheet } from './markdown';
@@ -17,3 +17,6 @@ export * from './variables';
 
 /** All reference sections, in display order. */
 export const referenceSections: ReferenceSection[] = loadSheets();
+
+/** Labels, examples and types for placeholders, shared by every sheet. */
+export const sharedVariables: Map<string, ReferenceVariable> = loadSharedVariables();

@@ -10,6 +10,7 @@ Draft, not verified on every release. Neighbors stuck in ExStart or Exchange usu
 
 `get router info ospf status` - Router id, areas, and SPF run counts
 `get router info ospf neighbor` - Neighbor state: Full is the goal
+> Full is healthy. 2-Way is also normal between two routers that are neither DR nor BDR on a broadcast network.
 `get router info ospf interface` - Per-interface area, timers, network type, and DR / BDR
 `get router info ospf database brief` - Link-state database summary
 `get router info routing-table ospf` - OSPF routes that made it into the routing table
