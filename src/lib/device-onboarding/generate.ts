@@ -71,7 +71,7 @@ export interface OnboardingOptions {
    */
   memberMode?: 'append' | 'set';
 
-  /** How a switch gets its name. FortiAPs always use `set name`. Default 'set-name'. */
+  /** How a switch gets its name. FortiAPs always use `set name`. Default 'rename'. */
   switchNaming?: SwitchNaming;
   /** `set fsw-wan1-admin ...`. Default 'authorize'. */
   switchAuth?: AuthAction;
@@ -195,7 +195,7 @@ export function generateOnboarding(
     bulkComment: (options.bulkComment ?? '').trim(),
     keyInComment: options.keyInComment ?? false,
     memberMode: options.memberMode ?? 'append',
-    switchNaming: options.switchNaming ?? 'set-name',
+    switchNaming: options.switchNaming ?? 'rename',
     switchAuth: options.switchAuth ?? 'authorize',
     fortilink: (options.fortilink ?? 'fortilink').trim(),
     switchGroup: (options.switchGroup ?? '').trim(),
@@ -312,12 +312,8 @@ export function generateOnboarding(
       if (now) id = now.id;
 
       const named = naming === 'rename' || naming === 'preconfigure';
-      if (named && !device.name) {
-        warnings.push({
-          line: device.row,
-          message: `${device.serial}: no name to give it, so it keeps its ${now ? 'current' : 'serial number as its'} ID`,
-        });
-      } else if (named && !sameText(device.name, id)) {
+      // A row with no name simply keeps the ID it has.
+      if (named && device.name && !sameText(device.name, id)) {
         const holder = takenIds.get(device.name.toLowerCase());
         if (holder !== undefined && holder !== device.serial) {
           warnings.push({

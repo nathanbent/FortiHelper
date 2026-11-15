@@ -74,7 +74,7 @@ export const deviceOnboardingTool: Tool = {
       bulkComment: '',
       keyInComment: false,
       memberMode: 'append',
-      switchNaming: 'set-name',
+      switchNaming: 'rename',
       switchAuth: 'authorize',
       fortilink: 'fortilink',
       switchGroup: '',
@@ -461,9 +461,9 @@ export const deviceOnboardingTool: Tool = {
         selectField(
           'Switch names',
           [
-            { value: 'set-name', label: 'set name (FortiOS 7.2 and earlier)' },
             { value: 'rename', label: 'Rename from serial to name (7.4+, already listed)' },
             { value: 'preconfigure', label: 'Create under the name with set sn (7.4+, not connected yet)' },
+            { value: 'set-name', label: 'set name (FortiOS 7.2 and earlier)' },
             { value: 'none', label: 'Keep the serial, no name' },
           ],
           opts.switchNaming,

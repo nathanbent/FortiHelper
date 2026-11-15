@@ -187,8 +187,8 @@ describe('generateOnboarding', () => {
     expect(batches[0].output).toBe(
       [
         'config switch-controller managed-switch',
-        '    edit "S248EPTF00000001"',
-        '        set name "IDF1-SW1"',
+        '    rename "S248EPTF00000001" to "IDF1-SW1"',
+        '    edit "IDF1-SW1"',
         '        set description "First floor IDF"',
         '        set fsw-wan1-peer "fortilink"',
         '        set fsw-wan1-admin enable',
@@ -199,6 +199,25 @@ describe('generateOnboarding', () => {
         '        set admin enable',
         '        set name "AP-Lobby"',
         '        set location "Lobby ceiling"',
+        '    next',
+        'end',
+        '',
+      ].join('\n'),
+    );
+  });
+
+  it('uses set name on a switch for FortiOS 7.2 and earlier', () => {
+    const { batches } = generateOnboarding(load(SHEET).devices.slice(0, 1), {
+      switchNaming: 'set-name',
+    });
+    expect(batches[0].output).toBe(
+      [
+        'config switch-controller managed-switch',
+        '    edit "S248EPTF00000001"',
+        '        set name "IDF1-SW1"',
+        '        set description "First floor IDF"',
+        '        set fsw-wan1-peer "fortilink"',
+        '        set fsw-wan1-admin enable',
         '    next',
         'end',
         '',
@@ -359,7 +378,6 @@ describe('generateOnboarding', () => {
     // FortiOS 7.4+ has no "set name" on a switch, so none is emitted here.
     expect(out).not.toContain('set name');
     const messages = warnings.map((w) => w.message).join('\n');
-    expect(messages).toContain('S248EPTF00000001: no name to give it');
     expect(messages).toContain('"Core SW" may be refused as a switch ID');
     expect(messages).toContain('"DUP" is already the ID of S248EPTF00000003');
   });
@@ -593,7 +611,7 @@ describe('comparing against the FortiGate', () => {
   it('emits only what is missing or different', () => {
     const result = generateOnboarding(
       load(LIST).devices,
-      { switchGroup: 'Floor1', apProfile: 'FAP{model}-default' },
+      { switchNaming: 'set-name', switchGroup: 'Floor1', apProfile: 'FAP{model}-default' },
       parseExistingState(SHOWN),
     );
     expect(result.plan.map((p) => [p.device.serial, p.status, p.changes, p.batch])).toEqual([
@@ -644,7 +662,7 @@ describe('comparing against the FortiGate', () => {
 
   it('has nothing to emit once the FortiGate matches the list', () => {
     const devices = load('serial,name,comments\nS248EPTF00000001,IDF1-SW1,First floor IDF').devices;
-    const result = generateOnboarding(devices, {}, parseExistingState(SHOWN));
+    const result = generateOnboarding(devices, { switchNaming: 'set-name' }, parseExistingState(SHOWN));
     expect(result.batches).toEqual([]);
     expect(result.plan[0].status).toBe('done');
   });
@@ -715,7 +733,11 @@ describe('comparing against the FortiGate', () => {
 
   it('warns that set name will be refused where switch IDs are names', () => {
     const devices = load('serial,name\nS248EPTF00000001,IDF1-SW1').devices;
-    const { warnings } = generateOnboarding(devices, {}, parseExistingState(NAMED));
+    const { warnings } = generateOnboarding(
+      devices,
+      { switchNaming: 'set-name' },
+      parseExistingState(NAMED),
+    );
     expect(warnings.map((w) => w.message).join()).toContain('"set name" does not exist');
   });
 });

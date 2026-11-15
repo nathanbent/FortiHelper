@@ -73,10 +73,11 @@ carries the same split as hairline-separated groups.
   approve / reject / back to discovered, the FortiLink interface, switch and
   AP groups, and the FortiAP profile (`FAP{model}-default` gives each AP its
   model's default). Comments become the switch `description` and the AP
-  `location`. **Switch names** follows the FortiOS version: `set name`
-  on 7.2 and earlier; on 7.4 and later, where the switch ID is the name,
-  either `rename "<serial>" to "<name>"` for switches the FortiGate already
-  lists or `edit "<name>"` + `set sn "<serial>"` for ones not connected yet;
+  `location`. **Switch names** follows the FortiOS version. On 7.4 and
+  later, where the switch ID is the name, the default is
+  `rename "<serial>" to "<name>"` for switches the FortiGate already
+  lists, with `edit "<name>"` + `set sn "<serial>"` for ones not connected yet
+  and `set name` for FortiOS 7.2 and earlier;
   APs keep their serial as their ID. Paste the FortiGate's current config
   (the output of four `show` commands the tool lists, or a backup) under
   **Already on the FortiGate** and only what is missing or different is
