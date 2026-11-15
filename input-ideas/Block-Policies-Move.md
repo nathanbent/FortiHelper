@@ -126,7 +126,7 @@ config firewall policy
         set global-label "Global Blocks"
     next
     move 400 before <Insert-At>
-        edit 401
+    edit 401
         set name "Block TO Risky Countries"
         set srcintf "any"
         set dstintf "any"
@@ -415,6 +415,7 @@ config firewall policy
         set schedule "always"
         set service "ALL"
         set logtraffic all
+        set action deny
     next
     move 441 before <Insert-At>
     edit 442
@@ -426,6 +427,7 @@ config firewall policy
         set schedule "always"
         set service "ALL"
         set logtraffic all
+        set action deny
     next
     move 442 before <Insert-At>
     edit 443
@@ -437,6 +439,7 @@ config firewall policy
         set schedule "always"
         set service "ALL"
         set logtraffic all
+        set action deny
     next
     move 443 before <Insert-At>
     edit 444
@@ -448,6 +451,7 @@ config firewall policy
         set schedule "always"
         set service "ALL"
         set logtraffic all
+        set action deny
     next
     move 444 before <Insert-At>
     edit 445
@@ -459,6 +463,7 @@ config firewall policy
         set schedule "always"
         set service "ALL"
         set logtraffic all
+        set action deny
     next
     move 445 before <Insert-At>
     edit 446
@@ -470,6 +475,7 @@ config firewall policy
         set schedule "always"
         set service "ALL"
         set logtraffic all
+        set action deny
     next
     move 446 before <Insert-At>
 end

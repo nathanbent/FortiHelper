@@ -137,7 +137,8 @@ Phases 2 and 3 run as parallel agents once the scaffold exists.
 ## Phase 2: Forti Edit, color picker, reference notes
 
 Added after the initial two tools shipped. Sources: `input-ideas/forti-edit/`
-and `input-ideas/notes/`.
+and a set of working notes, which now live as sheets under
+`content/reference/`.
 
 ### 3. Forti Edit (`input-ideas/forti-edit/forti-edit.py`)
 
@@ -173,7 +174,7 @@ match), covering delta/full, append/remove/set, rules-file mode, dry-run.
 
 ### 4. Object Helper color picker
 
-`input-ideas/notes/colors.md` maps FortiGate color IDs 1-32 to names.
+`content/reference/colors.md` maps FortiGate color IDs 1-32 to names.
 Replace the two bare "Color ID" number inputs (object + group color) with a
 dropdown of `ID: Name` plus an approximate color swatch. Emitted config is
 unchanged (still `set color <id>`); data lives in `src/lib/colors.ts`.
@@ -181,7 +182,7 @@ unchanged (still `set color <id>`); data lives in `src/lib/colors.ts`.
 ### 5. Reference tab
 
 New shell tool (`src/ui/reference.ts`, id `reference`) rendering the
-cheat-sheets from `input-ideas/notes/` (FortiSwitch diag, IPsec diag,
+cheat-sheets now under `content/reference/` (FortiSwitch diag, IPsec diag,
 color table) as searchable sections with per-command copy buttons.
 Content is embedded at build time; adding a future note = one data entry.
 

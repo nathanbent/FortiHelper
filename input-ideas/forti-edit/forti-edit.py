@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-fortiedit.py  -  bulk query and edit tool for FortiOS "show" / config output.
+forti-edit.py  -  bulk query and edit tool for FortiOS "show" / config output.
 
 Reads FortiOS configuration text (a full backup, or the output of a `show`
 command pasted straight from the CLI), matches entries by field conditions,
@@ -10,7 +10,7 @@ rebuilt section or a minimal delta you can paste back into the box.
 It is quote-aware and it reconstructs long values that the FortiOS pager
 wrapped mid-token across several lines, so pasted `show` output parses cleanly.
 
-The important behaviour for your case: append is real append, not set. It
+The important behaviour: append is real append, not set. It
 reads the existing value list, adds the new token only if it is not already
 present, and re-emits the whole field (because FortiOS `set` on a multi-value
 field is a full replacement, that is how you realise append semantics safely).
@@ -20,16 +20,16 @@ because matching is on the literal token, not a substring of the line.
 Examples
 --------
 Preview every policy whose srcintf contains x1:
-    ./fortiedit.py config.txt -w srcintf:contains:x1 --dry-run
+    ./forti-edit.py config.txt -w srcintf:contains:x1 --dry-run
 
 Append x2 to srcintf on every policy that already has x1 (delta to stdout):
-    ./fortiedit.py config.txt -w srcintf:contains:x1 -a srcintf:x2
+    ./forti-edit.py config.txt -w srcintf:contains:x1 -a srcintf:x2
 
 Both interface directions in one pass, via a rules file:
-    ./fortiedit.py config.txt --rules add-x2.json
+    ./forti-edit.py config.txt --rules add-x2.json
 
 Rebuild the whole section instead of a delta:
-    ./fortiedit.py config.txt -w srcintf:contains:x1 -a srcintf:x2 -o full
+    ./forti-edit.py config.txt -w srcintf:contains:x1 -a srcintf:x2 -o full
 
 Match conditions (repeatable, AND-ed):   FIELD:OP:VALUE
     op = contains | not-contains | equals | exists | absent
