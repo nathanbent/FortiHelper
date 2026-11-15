@@ -828,3 +828,69 @@ mark.ref-filled {
   border-radius: 3px;
   padding: 0 0.15em;
 }
+
+/* --- Reference: topic chips, topic groups, variables bar, deep links --- */
+.ref-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.ref-chip { padding: 0.25rem 0.7rem; font-size: 0.82rem; border-radius: 999px; }
+
+.ref-chip-empty { opacity: 0.5; }
+
+.ref-group {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  margin: 1.4rem 0 0.5rem;
+}
+
+.ref-group-count {
+  color: var(--secondary);
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ref-varbar { margin-bottom: 1.25rem; padding: 0.7rem 1rem; }
+
+.ref-varbar .ref-vars-head { margin-bottom: 0; }
+
+.ref-varbar .ref-vars-fields { margin-top: 0.6rem; }
+
+.ref-varbar-add {
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--theme);
+  color: var(--content);
+  font-size: 0.8rem;
+  max-width: 100%;
+}
+
+.ref-var > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.ref-var-remove {
+  padding: 0 0.35rem;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  border: none;
+  background: none;
+  color: var(--secondary);
+}
+
+/* The sheet a #/reference/<id> link opened. */
+.ref-target { border-color: var(--accent); scroll-margin-top: 0.75rem; }
+
+/* Buttons in a sheet's header sit together at the right, however many there are. */
+.ref-summary-head .ref-heading { margin-right: auto; }

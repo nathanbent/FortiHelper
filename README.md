@@ -83,8 +83,10 @@ carries the same split as hairline-separated groups.
   the device table and in the **inventory CSV** export (with each device's
   batch), and only reaches the config if you ask for it in the comment.
 
-- **Reference**: curated cheat sheets, collapsed to a scannable index and
-  filtered by Topic and Kind dropdowns plus a live search: diagnostic command
+- **Reference**: curated cheat sheets, collapsed to a scannable index that
+  is grouped under topic headings and filtered by topic chips (each showing
+  how many sheets the other filters leave under it), a Kind dropdown, and a
+  live search: diagnostic command
   lists (with "Copy all" for sequences), multi-line config templates, and the
   FortiGate color-ID table with swatches. Click **+** on any command to add it
   to a selection tray, or **Add all** to take a whole section, then copy the
@@ -99,6 +101,11 @@ carries the same split as hairline-separated groups.
   shown on the page. Fields are detected from the commands and config
   blocks, so a new sheet needs nothing extra: reuse an existing placeholder
   name (`<switch-id>`, `<port>`, `<peer-ip>`) where it means the same thing.
+  A **Variables** bar above the list gathers every value in play: add a
+  variable there to set it before opening any sheet, remove one with its
+  **x**, or **Clear all**. Each sheet has a **Link** button that copies a
+  `#/reference/<sheet id>` URL, which opens the page scrolled to that sheet
+  with it expanded.
   See
   [Adding reference content](#adding-reference-content).
 - **Templates**: fill in a site's details and get the whole build-out config.

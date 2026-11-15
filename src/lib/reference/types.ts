@@ -80,3 +80,16 @@ export function kindLabel(kind: ReferenceKind): string {
 export function sectionItemCount(section: ReferenceSection): number {
   return (section.entries?.length ?? 0) + (section.snippets?.length ?? 0);
 }
+
+/**
+ * Sections bucketed by topic, in REFERENCE_TOPICS order, each keeping the
+ * order the sections came in. Topics with no sections are left out.
+ */
+export function groupByTopic(
+  sections: ReferenceSection[],
+): { topic: ReferenceTopic; sections: ReferenceSection[] }[] {
+  return REFERENCE_TOPICS.map(({ value }) => ({
+    topic: value,
+    sections: sections.filter((s) => s.topic === value),
+  })).filter((group) => group.sections.length > 0);
+}

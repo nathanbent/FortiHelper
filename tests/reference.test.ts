@@ -6,6 +6,7 @@ import {
   topicLabel,
   kindLabel,
   sectionItemCount,
+  groupByTopic,
 } from '../src/lib/reference';
 
 const topics = REFERENCE_TOPICS.map((t) => t.value);
@@ -98,5 +99,18 @@ describe('reference taxonomy', () => {
   it('leaves no kind without content', () => {
     const used = new Set(referenceSections.map((s) => s.kind));
     expect(kinds.filter((k) => !used.has(k))).toEqual([]);
+  });
+});
+
+describe('groupByTopic', () => {
+  it('buckets every section once, in topic order, keeping section order', () => {
+    const groups = groupByTopic(referenceSections);
+    expect(groups.map((g) => g.topic)).toEqual(
+      topics.filter((t) => referenceSections.some((s) => s.topic === t)),
+    );
+    expect(groups.flatMap((g) => g.sections).length).toBe(referenceSections.length);
+    for (const { topic, sections } of groups) {
+      expect(sections).toEqual(referenceSections.filter((s) => s.topic === topic));
+    }
   });
 });
