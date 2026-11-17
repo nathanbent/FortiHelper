@@ -2,6 +2,7 @@ import './styles.css';
 import type { Tool } from './types';
 import { el } from './ui/components';
 import { helpPanel } from './ui/help';
+import { shellNav } from './ui/nav';
 import { applyTheme, loadTheme, themePicker } from './ui/theme';
 import { objectHelperTool } from './ui/object-helper';
 import { homeTool } from './ui/home';
@@ -14,9 +15,8 @@ import { deviceOnboardingTool } from './ui/device-onboarding';
 import { referenceTool } from './ui/reference';
 import { aboutTool } from './ui/about';
 
-// Nav order: home, then the generators in the order you would reach for
-// them, then the editor, then the lookup tab, then templates, with the
-// About page last.
+// Every page the router knows. The header menu and the Home page take their
+// order and grouping from TOOL_GROUPS, not from this list.
 const tools: Tool[] = [
   homeTool,
   objectHelperTool,
@@ -34,9 +34,12 @@ const app = document.getElementById('app')!;
 
 const header = el('header', 'shell-header');
 const title = el('h1');
-title.append(document.createTextNode('\u{1F6E1}\uFE0F FortiHelper'), el('span', 'beta', 'beta'));
-const nav = el('nav', 'shell-nav');
-header.append(title, nav, themePicker());
+const brand = el('a', 'shell-brand', '\u{1F6E1}\uFE0F FortiHelper');
+brand.href = `#/${homeTool.id}`;
+title.append(brand, el('span', 'beta', 'beta'));
+// Object Helper is the one tool with its own link; the rest sit in the menu.
+const nav = shellNav(new Map(tools.map((t) => [t.id, t.title])), objectHelperTool.id);
+header.append(title, nav.element, themePicker());
 
 // The inline script in index.html already set this for the first paint; re-apply
 // so a stored preference survives a cleared or rewritten attribute.
@@ -52,19 +55,6 @@ footer.innerHTML =
 
 app.append(header, main, footer);
 
-// A hairline after these tabs splits the bar into:
-// home | build | work with | templates | about.
-const NAV_BREAKS = new Set(['home', 'onboarding', 'reference', 'quickstart']);
-
-const links = new Map<string, HTMLAnchorElement>();
-for (const tool of tools) {
-  const a = el('a', undefined, tool.title);
-  a.href = `#/${tool.id}`;
-  links.set(tool.id, a);
-  nav.append(a);
-  if (NAV_BREAKS.has(tool.id)) nav.append(el('span', 'nav-sep'));
-}
-
 /** `#/tool/param` -> the tool id and whatever follows it. */
 function currentRoute(): { id: string; param?: string } {
   const path = location.hash.replace(/^#\//, '');
@@ -77,7 +67,7 @@ function currentRoute(): { id: string; param?: string } {
 function render() {
   const { id, param } = currentRoute();
   const tool = tools.find((t) => t.id === id)!;
-  for (const [tid, a] of links) a.classList.toggle('active', tid === id);
+  nav.setActive(tool.id);
   main.replaceChildren();
   const heading = el('div');
   heading.append(el('h2', undefined, tool.title), el('p', 'tool-desc', tool.description));
