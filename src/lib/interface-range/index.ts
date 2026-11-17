@@ -83,24 +83,75 @@ function parseRange(token: string): ParsedRange | undefined {
 const CISCO_NAME_RE =
   /^(gi|fa|te|tw|fo|hu|gigabitethernet|fastethernet|tengigabitethernet|twentyfivegige|fortygigabitethernet|hundredgige)\d+\//i;
 
+/** Which numbers to keep: every one, odd or even only. */
+export type Parity = 'all' | 'odd' | 'even';
+
+export interface ExpandOptions {
+  /** Keep only odd- or even-numbered interfaces, across the whole list. */
+  only?: Parity;
+  /** Sort by name, then number, instead of keeping the order written. */
+  sort?: boolean;
+}
+
+/** A per-item modifier after a colon: `:odd`, `:even`, `:step4`. */
+interface Modifier {
+  parity: Parity;
+  step: number;
+}
+
+const MODIFIER_RE = /:(odd|even|step\s*(\d+)|every\s*(\d+))$/i;
+
+function readModifier(token: string): { body: string; mod: Modifier; bad?: string } {
+  const mod: Modifier = { parity: 'all', step: 1 };
+  const m = MODIFIER_RE.exec(token);
+  if (!m) {
+    // A colon with something we do not know after it.
+    const colon = token.lastIndexOf(':');
+    if (colon > 0) return { body: token.slice(0, colon), mod, bad: token.slice(colon) };
+    return { body: token, mod };
+  }
+  const word = m[1].toLowerCase();
+  if (word === 'odd' || word === 'even') mod.parity = word;
+  else mod.step = Math.max(1, Number(m[2] ?? m[3]));
+  return { body: token.slice(0, m.index), mod };
+}
+
+const matchesParity = (n: number, parity: Parity): boolean =>
+  parity === 'all' || (parity === 'odd' ? n % 2 === 1 : n % 2 === 0);
+
+/** Natural order: by the part before the number, then by the number. */
+function naturalCompare(a: string, b: string): number {
+  const pa = splitTrailingNumber(a);
+  const pb = splitTrailingNumber(b);
+  const prefixA = (pa ? pa.prefix : a).toLowerCase();
+  const prefixB = (pb ? pb.prefix : b).toLowerCase();
+  if (prefixA !== prefixB) return prefixA < prefixB ? -1 : 1;
+  return (pa ? Number(pa.digits) : -1) - (pb ? Number(pb.digits) : -1);
+}
+
 /**
  * Expand a range list into interface names, in the order written.
  *
  * Items are separated by commas, semicolons, spaces, or new lines. Spaces
  * around a range's `-` are allowed (`port1 - port8`), and a leading Cisco
  * `interface range` is dropped. Repeats are kept once.
+ *
+ * An item may end in `:odd`, `:even`, or `:stepN` (every Nth from the
+ * start), and an item starting with `!` is taken out of the list wherever
+ * it appears: `port1-24, !port5, !port10-12`.
  */
-export function expandRange(text: string): ExpandResult {
+export function expandRange(text: string, options: ExpandOptions = {}): ExpandResult {
   const warnings: Warning[] = [];
   const names: string[] = [];
   const seen = new Set<string>();
   const repeats: string[] = [];
+  const excluded = new Set<string>();
 
   let body = text.replace(/^\s*(interface\s+range|int\s+range|interface)\s+/i, (m) => {
     warnings.push({ kind: 'fix', message: `Dropped "${m.trim()}": list only the interfaces.` });
     return '';
   });
-  body = body.replace(/\s*-\s*/g, '-');
+  body = body.replace(/\s*-\s*/g, '-').replace(/\s*:\s*/g, ':').replace(/!\s+/g, '!');
 
   const tokens = body
     .split(/[\s,;]+/)
@@ -118,33 +169,47 @@ export function expandRange(text: string): ExpandResult {
   };
 
   let ciscoWarned = false;
-  for (const token of tokens) {
+  for (const raw of tokens) {
+    const exclude = raw.startsWith('!');
+    const { body: token, mod, bad } = readModifier(exclude ? raw.slice(1) : raw);
+    if (!token) continue;
+    if (bad) {
+      warnings.push({
+        message: `${raw}: "${bad}" is not a filter (use :odd, :even, or :step2), so it was ignored.`,
+      });
+    }
     if (!ciscoWarned && CISCO_NAME_RE.test(token)) {
       ciscoWarned = true;
       warnings.push({
         message: `"${token}" looks like a Cisco interface name. FortiOS names ports like port1, x1, or wan1.`,
       });
     }
+
+    const found: string[] = [];
     const range = parseRange(token);
     if (!range) {
-      add(token);
-      continue;
+      const num = splitTrailingNumber(token);
+      if (!num || matchesParity(Number(num.digits), mod.parity)) found.push(token);
+    } else {
+      let { start, end } = range;
+      if (start > end) {
+        warnings.push({ kind: 'fix', message: `${token} counts down: expanded from ${end} up to ${start}.` });
+        [start, end] = [end, start];
+      }
+      const count = end - start + 1;
+      if (count > MAX_RANGE) {
+        warnings.push({
+          message: `${token} would expand to ${count} interfaces (limit ${MAX_RANGE}): skipped.`,
+        });
+        continue;
+      }
+      for (let n = start; n <= end; n += mod.step) {
+        if (matchesParity(n, mod.parity)) found.push(range.prefix + String(n).padStart(range.width, '0'));
+      }
     }
-    let { start, end } = range;
-    if (start > end) {
-      warnings.push({ kind: 'fix', message: `${token} counts down: expanded from ${end} up to ${start}.` });
-      [start, end] = [end, start];
-    }
-    const count = end - start + 1;
-    if (count > MAX_RANGE) {
-      warnings.push({
-        message: `${token} would expand to ${count} interfaces (limit ${MAX_RANGE}): skipped.`,
-      });
-      continue;
-    }
-    for (let n = start; n <= end; n++) {
-      add(range.prefix + String(n).padStart(range.width, '0'));
-    }
+
+    if (exclude) for (const name of found) excluded.add(name.toLowerCase());
+    else found.forEach(add);
   }
 
   if (repeats.length) {
@@ -153,7 +218,18 @@ export function expandRange(text: string): ExpandResult {
       message: `Listed more than once, kept once: ${[...new Set(repeats)].join(', ')}.`,
     });
   }
-  return { names, warnings };
+
+  let result = names.filter((n) => !excluded.has(n.toLowerCase()));
+  const only = options.only ?? 'all';
+  if (only !== 'all') {
+    result = result.filter((n) => {
+      const num = splitTrailingNumber(n);
+      // A name with no number (wan, mgmt) is neither: keep it, as listed.
+      return !num || matchesParity(Number(num.digits), only);
+    });
+  }
+  if (options.sort) result = [...result].sort(naturalCompare);
+  return { names: result, warnings };
 }
 
 /** First words that can open a line inside an `edit` block. */
@@ -313,8 +389,21 @@ function fillPlaceholders(line: string, name: string, index: number): string {
     .replace(/\{i\}/g, String(index + 1));
 }
 
-export interface InterfaceRangeOptions {
+/**
+ * How much of the surrounding config to emit.
+ *
+ * - `full`:  the whole path from the top, ready to paste at the prompt.
+ * - `ports`: managed switches only: `config ports ... end`, for pasting
+ *            while already inside `edit <switch>`.
+ * - `edits`: just the `edit ... next` blocks, for pasting inside a config
+ *            section you have already entered.
+ */
+export type WrapMode = 'full' | 'ports' | 'edits';
+
+export interface InterfaceRangeOptions extends ExpandOptions {
   target: RangeTarget;
+  /** Defaults to `full`. `ports` is the same as `full` outside managed switches. */
+  wrap?: WrapMode;
   /**
    * Managed switch IDs (serial, or name after a rename on FortiOS 7.4+),
    * separated by commas, spaces, or new lines. Only used for
@@ -339,7 +428,8 @@ export function generateInterfaceRange(
   options: InterfaceRangeOptions,
 ): InterfaceRangeResult {
   const { target } = options;
-  const expanded = expandRange(rangeText);
+  const wrap = options.wrap ?? 'full';
+  const expanded = expandRange(rangeText, options);
   const commands = parseCommands(commandsText, target);
   const warnings = [...expanded.warnings, ...commands.warnings];
   const names = expanded.names;
@@ -355,7 +445,7 @@ export function generateInterfaceRange(
     target === 'managed-switch'
       ? (options.switchIds ?? '').split(/[\s,;]+/).filter((s) => s !== '')
       : [];
-  if (target === 'managed-switch' && switchIds.length === 0 && names.length && commands.lines.length) {
+  if (target === 'managed-switch' && wrap === 'full' && switchIds.length === 0 && names.length && commands.lines.length) {
     warnings.push({
       message:
         'No switch ID given: replace <switch-id> with the switch serial, or its name if it was renamed on FortiOS 7.4 or later.',
@@ -365,7 +455,7 @@ export function generateInterfaceRange(
   const stats = {
     interfaces: names.length,
     commands: commands.lines.length,
-    switches: target === 'managed-switch' ? Math.max(switchIds.length, 1) : 0,
+    switches: target === 'managed-switch' && wrap === 'full' ? Math.max(switchIds.length, 1) : 0,
   };
   if (!names.length || !commands.lines.length) {
     return { output: '', warnings, names, stats };
@@ -383,6 +473,14 @@ export function generateInterfaceRange(
     });
     return out;
   };
+
+  if (wrap === 'edits') {
+    return { output: edits(0).join('\n'), warnings, names, stats };
+  }
+  if (wrap === 'ports' && target === 'managed-switch') {
+    const out = ['config ports', ...edits(1), 'end'];
+    return { output: out.join('\n'), warnings, names, stats };
+  }
 
   const out: string[] = [];
   if (target === 'managed-switch') {
