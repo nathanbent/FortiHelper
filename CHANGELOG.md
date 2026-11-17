@@ -6,6 +6,7 @@ this file, so keep the shape: a `## YYYY-MM-DD` heading per day, then one
 
 ## 2026-11-17
 
+- Interface Range: odd, even, and every-Nth filters (port1-24:odd), ! to leave ports out, a quick-range builder, sort by number, one-click common commands, and output without the surrounding config switch-controller sections.
 - New tool: Interface Range. Like Cisco's interface range: list ports such as port1-port8,port10-11, type the commands once, and get them repeated for every port on a FortiGate, a FortiLink-managed switch, or a standalone FortiSwitch.
 
 ## 2026-11-15

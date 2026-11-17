@@ -1187,3 +1187,49 @@ mark.ref-filled.ref-hit { padding: 0 0.15em; }
 .batch-check-list summary { cursor: pointer; color: var(--muted); }
 
 .batch-check-list ul { margin: 0.25rem 0 0; padding-left: 1.2rem; color: var(--text); }
+
+/* --- Interface Range --- */
+.ir-builder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
+
+.ir-builder-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--secondary);
+}
+
+.ir-builder-field input,
+.ir-builder-field select {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--content);
+  background: var(--theme);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.4rem;
+}
+
+.ir-builder-field input[type='number'] { width: 4.5rem; }
+.ir-builder-field input[type='text'] { width: 5.5rem; }
+
+.ir-builder .btn,
+.ir-snippets .btn { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
+
+.ir-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.25rem 1rem; }
+.ir-filters .field { margin-bottom: 0.5rem; }
+
+.ir-snippets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.6rem;
+}
+.ir-snippets .hint { color: var(--secondary); font-size: 0.8rem; }
