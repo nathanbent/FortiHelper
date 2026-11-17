@@ -95,6 +95,19 @@ carries the same split as hairline-separated groups.
   or still differ are listed. The FortiCloud key is tracked rather than configured: it shows in
   the device table and in the **inventory CSV** export (with each device's
   batch), and only reaches the config if you ask for it in the comment.
+- **Interface Range**: the FortiOS stand-in for Cisco's `interface range`.
+  List interfaces as ranges and names (`port1-port8, port10-11, x1`; the end
+  of a range can repeat the prefix or give just the number), type the
+  commands once as you would inside one interface's `edit` block, and they
+  are repeated for every interface, wrapped in `config system interface`
+  (FortiGate), `config switch-controller managed-switch` / `config ports`
+  (FortiLink-managed switches, one block per switch ID), or
+  `config switch interface` (standalone FortiSwitch). `{port}`, `{n}`, and
+  `{i}` in a command fill in the interface name, its number, and its place in
+  the list. Nested `config ... end` blocks keep their indentation and are
+  closed if left open, a stray `edit` / `next` / `end` is dropped, and Cisco
+  lines such as `switchport access vlan 10` are flagged with the FortiOS
+  equivalent.
 
 - **Reference**: curated cheat sheets, collapsed to a scannable index that
   is grouped under topic headings and filtered by topic chips (each showing

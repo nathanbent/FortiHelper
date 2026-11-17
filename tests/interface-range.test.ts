@@ -1,0 +1,177 @@
+import { describe, expect, it } from 'vitest';
+import {
+  MAX_RANGE,
+  expandRange,
+  generateInterfaceRange,
+  parseCommands,
+} from '../src/lib/interface-range';
+
+describe('expandRange', () => {
+  it('expands full and short ranges, in the order written', () => {
+    expect(expandRange('port1-port3,port10-11').names).toEqual([
+      'port1',
+      'port2',
+      'port3',
+      'port10',
+      'port11',
+    ]);
+  });
+
+  it('accepts spaces, new lines, and single names', () => {
+    expect(expandRange('port1 - port2\nx1 wan1;internal3-4').names).toEqual([
+      'port1',
+      'port2',
+      'x1',
+      'wan1',
+      'internal3',
+      'internal4',
+    ]);
+  });
+
+  it('keeps names that contain a hyphen but are not ranges', () => {
+    expect(expandRange('wan1-backup, lan-a').names).toEqual(['wan1-backup', 'lan-a']);
+  });
+
+  it('splits chassis-style names at the right hyphen', () => {
+    expect(expandRange('1-P1-1-P3').names).toEqual(['1-P1', '1-P2', '1-P3']);
+  });
+
+  it('handles slashes and zero padding', () => {
+    expect(expandRange('port1/1-4').names).toEqual(['port1/1', 'port1/2', 'port1/3', 'port1/4']);
+    expect(expandRange('ge08-ge10').names).toEqual(['ge08', 'ge09', 'ge10']);
+  });
+
+  it('turns a countdown around and notes it', () => {
+    const r = expandRange('port3-port1');
+    expect(r.names).toEqual(['port1', 'port2', 'port3']);
+    expect(r.warnings[0].kind).toBe('fix');
+  });
+
+  it('drops repeats and a leading Cisco interface range', () => {
+    const r = expandRange('interface range port1-3, port2');
+    expect(r.names).toEqual(['port1', 'port2', 'port3']);
+    expect(r.warnings.every((w) => w.kind === 'fix')).toBe(true);
+    expect(r.warnings).toHaveLength(2);
+  });
+
+  it('refuses a runaway range', () => {
+    const r = expandRange(`port1-${MAX_RANGE + 1}`);
+    expect(r.names).toEqual([]);
+    expect(r.warnings[0].message).toMatch(/limit/);
+  });
+
+  it('warns about Cisco interface names', () => {
+    const r = expandRange('Gi1/0/1-24');
+    expect(r.names).toHaveLength(24);
+    expect(r.warnings[0].message).toMatch(/Cisco/);
+  });
+});
+
+describe('parseCommands', () => {
+  it('indents nested config blocks and closes any left open', () => {
+    const r = parseCommands(
+      ['set vlan "vlan10"', 'config port-security', 'set port-security-mode 802.1X'].join('\n'),
+      'managed-switch',
+    );
+    expect(r.lines).toEqual([
+      'set vlan "vlan10"',
+      'config port-security',
+      '    set port-security-mode 802.1X',
+      'end',
+    ]);
+    expect(r.warnings[0].kind).toBe('fix');
+  });
+
+  it('indents edit blocks inside a nested config', () => {
+    const r = parseCommands(['config ipv4', 'edit 1', 'set ip 192.0.2.1/32', 'next', 'end'].join('\n'), 'fortigate');
+    expect(r.lines).toEqual(['config ipv4', '    edit 1', '        set ip 192.0.2.1/32', '    next', 'end']);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it('drops a top-level edit, next, or end', () => {
+    const r = parseCommands(['edit "port1"', 'set status down', 'next', 'end'].join('\n'), 'fortigate');
+    expect(r.lines).toEqual(['set status down']);
+    expect(r.warnings).toHaveLength(3);
+  });
+
+  it('points Cisco syntax at the FortiOS equivalent', () => {
+    const r = parseCommands('switchport access vlan 10\nshutdown', 'managed-switch');
+    expect(r.warnings[0].message).toMatch(/set vlan/);
+    expect(r.warnings[1].message).toMatch(/set status down/);
+  });
+
+  it('skips blank lines and comments', () => {
+    expect(parseCommands('# note\n\n  set status up  \n', 'fortigate').lines).toEqual(['set status up']);
+  });
+});
+
+describe('generateInterfaceRange', () => {
+  it('wraps FortiGate interfaces in config system interface', () => {
+    const { output } = generateInterfaceRange('port1-2', 'set status down', { target: 'fortigate' });
+    expect(output).toBe(
+      [
+        'config system interface',
+        '    edit "port1"',
+        '        set status down',
+        '    next',
+        '    edit "port2"',
+        '        set status down',
+        '    next',
+        'end',
+      ].join('\n'),
+    );
+  });
+
+  it('nests managed switch ports under each switch', () => {
+    const { output, stats } = generateInterfaceRange('port1', 'set vlan "vlan10"', {
+      target: 'managed-switch',
+      switchIds: 'S248EPTF00000001, S248EPTF00000002',
+    });
+    expect(stats.switches).toBe(2);
+    expect(output).toBe(
+      [
+        'config switch-controller managed-switch',
+        '    edit "S248EPTF00000001"',
+        '        config ports',
+        '            edit "port1"',
+        '                set vlan "vlan10"',
+        '            next',
+        '        end',
+        '    next',
+        '    edit "S248EPTF00000002"',
+        '        config ports',
+        '            edit "port1"',
+        '                set vlan "vlan10"',
+        '            next',
+        '        end',
+        '    next',
+        'end',
+      ].join('\n'),
+    );
+  });
+
+  it('leaves a placeholder and a warning without a switch ID', () => {
+    const r = generateInterfaceRange('port1', 'set vlan "vlan10"', { target: 'managed-switch' });
+    expect(r.output).toContain('    edit <switch-id>');
+    expect(r.warnings.some((w) => /switch ID/.test(w.message))).toBe(true);
+  });
+
+  it('uses config switch interface on a standalone FortiSwitch', () => {
+    const { output } = generateInterfaceRange('port1', 'set native-vlan 10', { target: 'fortiswitch' });
+    expect(output.split('\n')[0]).toBe('config switch interface');
+  });
+
+  it('fills {port}, {n}, and {i}', () => {
+    const { output } = generateInterfaceRange('port7-8', 'set description "{port} desk {n} #{i}"', {
+      target: 'fortigate',
+    });
+    expect(output).toContain('set description "port7 desk 7 #1"');
+    expect(output).toContain('set description "port8 desk 8 #2"');
+  });
+
+  it('emits nothing until there are both interfaces and commands', () => {
+    expect(generateInterfaceRange('port1-4', '', { target: 'fortigate' }).output).toBe('');
+    expect(generateInterfaceRange('', 'set status up', { target: 'fortigate' }).output).toBe('');
+    expect(generateInterfaceRange('port1-4', '', { target: 'fortigate' }).names).toHaveLength(4);
+  });
+});

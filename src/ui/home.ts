@@ -42,6 +42,11 @@ const GROUPS: { title: string; blurb: string; tools: { id: string; name: string;
         name: 'Forti Edit',
         what: 'Bulk-edit an existing config: set, append, or remove across many objects.',
       },
+      {
+        id: 'interface-range',
+        name: 'Interface Range',
+        what: 'Like Cisco\u2019s interface range: type commands once and apply them to port1-port20 or any list of ports.',
+      },
     ],
   },
   {
