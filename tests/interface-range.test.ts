@@ -175,3 +175,66 @@ describe('generateInterfaceRange', () => {
     expect(generateInterfaceRange('port1-4', '', { target: 'fortigate' }).names).toHaveLength(4);
   });
 });
+
+describe('expandRange filters', () => {
+  it('keeps odd or even numbers of one item', () => {
+    expect(expandRange('port1-8:odd').names).toEqual(['port1', 'port3', 'port5', 'port7']);
+    expect(expandRange('port1-port8 : even').names).toEqual(['port2', 'port4', 'port6', 'port8']);
+  });
+
+  it('steps from the start of a range', () => {
+    expect(expandRange('port1-12:step4').names).toEqual(['port1', 'port5', 'port9']);
+    expect(expandRange('port2-10:every3').names).toEqual(['port2', 'port5', 'port8']);
+  });
+
+  it('leaves out ! items wherever they appear', () => {
+    expect(expandRange('!port3, port1-6, !port5-6').names).toEqual(['port1', 'port2', 'port4']);
+    expect(expandRange('port1-6, !port1-6:even').names).toEqual(['port1', 'port3', 'port5']);
+  });
+
+  it('warns about a filter it does not know', () => {
+    const r = expandRange('port1-4:prime');
+    expect(r.names).toHaveLength(4);
+    expect(r.warnings[0].message).toMatch(/not a filter/);
+  });
+
+  it('applies a list-wide odd or even filter, keeping names with no number', () => {
+    expect(expandRange('port1-4, x1-2, mgmt', { only: 'even' }).names).toEqual([
+      'port2',
+      'port4',
+      'x2',
+      'mgmt',
+    ]);
+  });
+
+  it('sorts by name, then number', () => {
+    expect(expandRange('port10, x2, port2, x1', { sort: true }).names).toEqual([
+      'port2',
+      'port10',
+      'x1',
+      'x2',
+    ]);
+  });
+});
+
+describe('generateInterfaceRange output shape', () => {
+  it('emits only config ports for a managed switch', () => {
+    const r = generateInterfaceRange('port1', 'set status down', { target: 'managed-switch', wrap: 'ports' });
+    expect(r.output).toBe(
+      ['config ports', '    edit "port1"', '        set status down', '    next', 'end'].join('\n'),
+    );
+    expect(r.warnings).toEqual([]);
+  });
+
+  it('emits only the edit blocks', () => {
+    const r = generateInterfaceRange('port1-2', 'set status down', { target: 'managed-switch', wrap: 'edits' });
+    expect(r.output).toBe(
+      ['edit "port1"', '    set status down', 'next', 'edit "port2"', '    set status down', 'next'].join('\n'),
+    );
+  });
+
+  it('treats ports as full outside managed switches', () => {
+    const r = generateInterfaceRange('port1', 'set status down', { target: 'fortigate', wrap: 'ports' });
+    expect(r.output.split('\n')[0]).toBe('config system interface');
+  });
+});

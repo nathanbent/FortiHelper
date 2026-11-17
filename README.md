@@ -104,7 +104,15 @@ carries the same split as hairline-separated groups.
   (FortiLink-managed switches, one block per switch ID), or
   `config switch interface` (standalone FortiSwitch). `{port}`, `{n}`, and
   `{i}` in a command fill in the interface name, its number, and its place in
-  the list. Nested `config ... end` blocks keep their indentation and are
+  the list. An item can end in `:odd`, `:even`, or `:stepN` (every Nth from
+  the start), an item starting with `!` is left out (`port1-24:odd, !port5`),
+  and a **Quick range** row (prefix, from, to, which) adds or excludes one
+  for you; an **Only** filter keeps odd or even numbers across the whole
+  list, and the list can be sorted by number. **Output** can leave out the
+  surrounding config: just `config ports ... end` for a managed switch you
+  are already in, or just the `edit` blocks. **Insert** buttons add the
+  everyday port commands for the chosen target (shut down, VLANs, PoE off,
+  edge port, description). Nested `config ... end` blocks keep their indentation and are
   closed if left open, a stray `edit` / `next` / `end` is dropped, and Cisco
   lines such as `switchport access vlan 10` are flagged with the FortiOS
   equivalent.
