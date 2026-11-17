@@ -43,6 +43,7 @@ export const PAGE_IDS = [
   'content-filter',
   'onboarding',
   'forti-edit',
+  'interface-range',
   'reference',
   'quickstart',
   'about',

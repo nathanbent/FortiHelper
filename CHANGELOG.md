@@ -4,6 +4,10 @@ What changed in FortiHelper, newest first. The About page in the app shows
 this file, so keep the shape: a `## YYYY-MM-DD` heading per day, then one
 `- ` bullet per change, in plain text.
 
+## 2026-11-17
+
+- New tool: Interface Range. Like Cisco's interface range: list ports such as port1-port8,port10-11, type the commands once, and get them repeated for every port on a FortiGate, a FortiLink-managed switch, or a standalone FortiSwitch.
+
 ## 2026-11-15
 
 - Reference: the FortiSwitch rename block now takes the switch's current ID, which is the serial number only until the first rename.

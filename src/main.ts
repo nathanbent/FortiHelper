@@ -9,6 +9,7 @@ import { quickstartTool } from './ui/quickstart-tool';
 import { webfilterTool } from './ui/webfilter';
 import { webfilterContentTool } from './ui/webfilter-content';
 import { fortiEditTool } from './ui/forti-edit';
+import { interfaceRangeTool } from './ui/interface-range';
 import { deviceOnboardingTool } from './ui/device-onboarding';
 import { referenceTool } from './ui/reference';
 import { aboutTool } from './ui/about';
@@ -23,6 +24,7 @@ const tools: Tool[] = [
   webfilterContentTool,
   deviceOnboardingTool,
   fortiEditTool,
+  interfaceRangeTool,
   referenceTool,
   quickstartTool,
   aboutTool,
