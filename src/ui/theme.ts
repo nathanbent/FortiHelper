@@ -42,15 +42,11 @@ export function applyTheme(theme: Theme): void {
 /** Header control for switching between system, light, and dark. */
 export function themePicker(): HTMLElement {
   const wrap = el('div', 'theme-picker');
-  const id = 'theme-select';
-
-  const label = el('label', undefined, 'Theme');
-  label.htmlFor = id;
-
   const select = el('select');
-  select.id = id;
+  select.setAttribute('aria-label', 'Theme');
+  select.title = 'Theme';
   for (const [value, text] of [
-    ['system', 'System'],
+    ['system', 'Auto theme'],
     ['light', 'Light'],
     ['dark', 'Dark'],
   ] as const) {
@@ -61,6 +57,6 @@ export function themePicker(): HTMLElement {
   select.value = loadTheme();
   select.addEventListener('change', () => applyTheme(select.value as Theme));
 
-  wrap.append(label, select);
+  wrap.append(select);
   return wrap;
 }

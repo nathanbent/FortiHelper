@@ -8,8 +8,9 @@ optional DNS-over-HTTPS lookups when you ask for resolved IP objects).
 ## Tools
 
 The app opens on a **Home** launcher that groups the tools by what you are
-trying to do: build config, change config, look things up. The nav bar
-carries the same split as hairline-separated groups.
+trying to do: build config, change config, look things up. The header keeps
+Object Helper one click away and puts every page in a **Tools** menu with the
+same groups; the FortiHelper name links back to Home.
 
 - **Object Helper**: turn a list of FQDNs, IPs, CIDRs, and IP ranges into
   `config firewall address` objects and address groups, with naming prefixes,
@@ -479,7 +480,7 @@ dropdown option). Run `npm test` after editing content.
 
 ## About page and changelog
 
-The footer shows the version, and it and the last tab in the nav link to an
+The footer shows the version, and it and the Tools menu link to an
 About page (`#/about`): version,
 the commit the build was made from, a link to the author's site, and the
 changelog.
