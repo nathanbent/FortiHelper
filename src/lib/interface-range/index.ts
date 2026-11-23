@@ -91,7 +91,16 @@ export interface ExpandOptions {
   only?: Parity;
   /** Sort by name, then number, instead of keeping the order written. */
   sort?: boolean;
+  /**
+   * Prefix given to an item that is only numbers, so `1-24` means
+   * `port1-port24`. Defaults to `port`; an empty string keeps numbers as
+   * typed.
+   */
+  numberPrefix?: string;
 }
+
+/** The prefix bare numbers get unless told otherwise: FortiSwitch and most FortiGate ports. */
+export const DEFAULT_NUMBER_PREFIX = 'port';
 
 /** A per-item modifier after a colon: `:odd`, `:even`, `:step4`. */
 interface Modifier {
@@ -139,6 +148,9 @@ function naturalCompare(a: string, b: string): number {
  * An item may end in `:odd`, `:even`, or `:stepN` (every Nth from the
  * start), and an item starting with `!` is taken out of the list wherever
  * it appears: `port1-24, !port5, !port10-12`.
+ *
+ * An item that is only numbers (`1-24`, `5`) gets `numberPrefix`, so it
+ * reads as `port1-port24` and `port5`.
  */
 export function expandRange(text: string, options: ExpandOptions = {}): ExpandResult {
   const warnings: Warning[] = [];
@@ -168,11 +180,20 @@ export function expandRange(text: string, options: ExpandOptions = {}): ExpandRe
     names.push(name);
   };
 
+  const numberPrefix = (options.numberPrefix ?? DEFAULT_NUMBER_PREFIX).trim();
+  const prefixed: string[] = [];
+
   let ciscoWarned = false;
   for (const raw of tokens) {
     const exclude = raw.startsWith('!');
-    const { body: token, mod, bad } = readModifier(exclude ? raw.slice(1) : raw);
+    const read = readModifier(exclude ? raw.slice(1) : raw);
+    const { mod, bad } = read;
+    let token = read.body;
     if (!token) continue;
+    if (numberPrefix && /^\d+(-\d+)?$/.test(token)) {
+      prefixed.push(token);
+      token = numberPrefix + token;
+    }
     if (bad) {
       warnings.push({
         message: `${raw}: "${bad}" is not a filter (use :odd, :even, or :step2), so it was ignored.`,
@@ -210,6 +231,16 @@ export function expandRange(text: string, options: ExpandOptions = {}): ExpandRe
 
     if (exclude) for (const name of found) excluded.add(name.toLowerCase());
     else found.forEach(add);
+  }
+
+  if (prefixed.length) {
+    const eg = prefixed[0];
+    const [a, b] = eg.split('-');
+    const shown = b === undefined ? `${numberPrefix}${a}` : `${numberPrefix}${a}-${numberPrefix}${b}`;
+    warnings.push({
+      kind: 'fix',
+      message: `Bare numbers take the "${numberPrefix}" prefix: ${eg} is ${shown}.`,
+    });
   }
 
   if (repeats.length) {

@@ -1,6 +1,7 @@
 import type { Tool } from '../types';
 import { checkbox, el, outputPane, selectField, setShown } from './components';
 import {
+  DEFAULT_NUMBER_PREFIX,
   TARGET_LABELS,
   generateInterfaceRange,
   type Parity,
@@ -8,7 +9,7 @@ import {
   type WrapMode,
 } from '../lib/interface-range';
 
-const RANGE_PLACEHOLDER = 'port1-port8, port10-11, x1';
+const RANGE_PLACEHOLDER = 'port1-port8, 10-11, x1';
 
 /** Example commands per target: what a first-time user would most likely type. */
 const COMMAND_PLACEHOLDERS: Record<RangeTarget, string> = {
@@ -88,6 +89,7 @@ export const interfaceRangeTool: Tool = {
     let wrap: WrapMode = 'full';
     let only: Parity = 'all';
     let sort = false;
+    let numberPrefix = DEFAULT_NUMBER_PREFIX;
 
     const layout = el('div', 'tool-layout');
     const left = el('div');
@@ -177,6 +179,24 @@ export const interfaceRangeTool: Tool = {
           regenerate();
         },
       ),
+      (() => {
+        const f = el('div', 'field');
+        const input = el('input');
+        input.type = 'text';
+        input.value = numberPrefix;
+        input.size = 8;
+        input.placeholder = '(numbers as typed)';
+        input.addEventListener('input', () => {
+          numberPrefix = input.value;
+          regenerate();
+        });
+        f.append(
+          el('label', undefined, 'Bare numbers mean'),
+          input,
+          el('span', 'hint', '1-24 is port1-port24; clear it to keep numbers as typed'),
+        );
+        return f;
+      })(),
       checkbox('Sort by number', sort, (v) => {
         sort = v;
         regenerate();
@@ -188,7 +208,8 @@ export const interfaceRangeTool: Tool = {
       el(
         'p',
         'ref-note',
-        'Ranges like port1-port8 or port1-8, separated by commas, spaces, or new lines; single names such as wan1 work too. ' +
+        'Ranges like port1-port8, port1-8, or just 1-8 (read as port1-port8), separated by commas, spaces, or new lines; ' +
+          'single names such as wan1 work too. ' +
           'End an item with :odd, :even, or :step2 to thin it out, and start one with ! to leave it out: port1-24:odd, !port5.',
       ),
       builder,
@@ -300,7 +321,14 @@ export const interfaceRangeTool: Tool = {
     container.append(layout);
 
     function regenerate() {
-      const result = generateInterfaceRange(rangeText, commandsText, { target, switchIds, wrap, only, sort });
+      const result = generateInterfaceRange(rangeText, commandsText, {
+        target,
+        switchIds,
+        wrap,
+        only,
+        sort,
+        numberPrefix,
+      });
       const { names, stats } = result;
 
       if (names.length) {
