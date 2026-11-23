@@ -238,3 +238,32 @@ describe('generateInterfaceRange output shape', () => {
     expect(r.output.split('\n')[0]).toBe('config system interface');
   });
 });
+
+describe('bare numbers', () => {
+  it('reads 1-24 as port1-port24', () => {
+    const r = expandRange('1-4');
+    expect(r.names).toEqual(['port1', 'port2', 'port3', 'port4']);
+    expect(r.warnings).toEqual([
+      { kind: 'fix', message: 'Bare numbers take the "port" prefix: 1-4 is port1-port4.' },
+    ]);
+  });
+
+  it('works with single numbers, filters, exclusions, and named items', () => {
+    expect(expandRange('1-8:odd, !5, 10, x1').names).toEqual(['port1', 'port3', 'port7', 'port10', 'x1']);
+  });
+
+  it('takes another prefix, or none', () => {
+    expect(expandRange('1-2', { numberPrefix: 'x' }).names).toEqual(['x1', 'x2']);
+    expect(expandRange('1-2', { numberPrefix: '' }).names).toEqual(['1', '2']);
+  });
+
+  it('leaves chassis-style names alone', () => {
+    expect(expandRange('1-P1-1-P2').names).toEqual(['1-P1', '1-P2']);
+  });
+
+  it('reaches the generated config', () => {
+    const { output } = generateInterfaceRange('1-2', 'set status down', { target: 'fortigate' });
+    expect(output).toContain('edit "port1"');
+    expect(output).toContain('edit "port2"');
+  });
+});

@@ -1355,3 +1355,4 @@ mark.ref-filled.ref-hit { padding: 0 0.15em; }
   margin: 0 0 0.6rem;
 }
 .ir-snippets .hint { color: var(--secondary); font-size: 0.8rem; }
+.ir-filters .field input[type='text'] { width: 9rem; }

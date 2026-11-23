@@ -98,7 +98,9 @@ same groups; the FortiHelper name links back to Home.
   batch), and only reaches the config if you ask for it in the comment.
 - **Interface Range**: the FortiOS stand-in for Cisco's `interface range`.
   List interfaces as ranges and names (`port1-port8, port10-11, x1`; the end
-  of a range can repeat the prefix or give just the number), type the
+  of a range can repeat the prefix or give just the number, and bare numbers
+  such as `1-24` mean `port1-port24`, with the prefix changeable under
+  **Bare numbers mean** or cleared to keep numbers as typed), type the
   commands once as you would inside one interface's `edit` block, and they
   are repeated for every interface, wrapped in `config system interface`
   (FortiGate), `config switch-controller managed-switch` / `config ports`

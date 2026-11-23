@@ -4,6 +4,10 @@ What changed in FortiHelper, newest first. The About page in the app shows
 this file, so keep the shape: a `## YYYY-MM-DD` heading per day, then one
 `- ` bullet per change, in plain text.
 
+## 2026-11-23
+
+- Interface Range: bare numbers mean port numbers, so 1-24 is port1-port24. The prefix can be changed or cleared.
+
 ## 2026-11-17
 
 - Simpler header: Object Helper keeps its own link and every other page moves into one grouped Tools menu, so the bar stays on one row on any screen. The FortiHelper name links to Home.
